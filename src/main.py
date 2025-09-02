@@ -68,7 +68,7 @@ def companies():
 
     companies = data.get('companies')
 
-    return {"status": "OK"}
+    return jsonify({"message": "Proceso completado exitosamente , companies: " + companies}), 200
 
 
 @app.route("/scrape", methods=['GET'])

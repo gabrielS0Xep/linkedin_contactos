@@ -229,7 +229,7 @@ class BigQueryService:
 
         query = f"""
         SELECT * FROM `{self.__project_id}.{self.__dataset}.{Config.CONTROL_TABLE_NAME}`
-        WHERE contact_found_flg = FALSE AND scrapping_d is null limit 10
+        WHERE (contact_found_flg = FALSE or contact_found_flg is null) AND scrapping_d is null limit 10
         """
 
         try:
