@@ -99,8 +99,8 @@ def scrape():
             ), 400
 
     # Extraer nombres y crear mapeo de biz_identifier
-    companies = [company['name'] for company in companies_data]
-    company_biz_mapping = {company['name']: company['biz_identifier'] for company in companies_data}
+    companies = [company['biz_name'] for company in companies_data]
+    company_biz_mapping = {company['biz_name']: company['biz_identifier'] for company in companies_data}
 
     scraper = LinkedInContactsSelectiveScraper(SERPER_API_KEY, APIFY_TOKEN)
     # Configurar mapeo de biz_identifier
