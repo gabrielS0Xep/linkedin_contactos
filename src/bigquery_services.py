@@ -231,11 +231,11 @@ class BigQueryService:
         SELECT * FROM `{self.__project_id}.{self.__dataset}.{Config.CONTROL_TABLE_NAME}`
         WHERE (contact_found_flg = FALSE or contact_found_flg is null) AND scrapping_d is null limit 10
         """
-
+        logger.info(f"🔍 Query: {query}")
         try:
             client = self.__bq_client
             results = client.query(query).to_dataframe()
-
+            logger.info(f"🔍 Results: {results}")
             # Extraer nombres y biz_identifier, limpiar valores nulos
             companies = []
             for _, row in results.iterrows():
