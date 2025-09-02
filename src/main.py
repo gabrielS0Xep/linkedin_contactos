@@ -204,7 +204,7 @@ def scrape():
         for posicion, count in sorted(posiciones.items(), key=lambda x: x[1], reverse=True):
             logger.info(f"  {posicion}: {count} contactos")
 
-    logger.info(f"\n✅ PROCESO COMPLETADO EXITOSAMENTE")
+    return jsonify({"message": "Proceso completado exitosamente"}), 200
 
 
 if __name__ == "__main__":
