@@ -15,7 +15,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r ./requirements.txt
 
 # Copiar el código de la aplicación
-COPY src/ ./src
+COPY src/ /src
 
 # Work from src so imports like `from config import Config` resolve
 WORKDIR /app/src
