@@ -3,7 +3,6 @@ import json
 import time
 from typing import List, Dict, Tuple
 from apify_client import ApifyClient
-import openai
 import re
 from datetime import datetime
 from config import Config
@@ -14,9 +13,9 @@ from google.genai import types
 
 
 class LinkedInContactsSelectiveScraper:
-    def __init__(self, serper_api_key: str, openai_api_key: str, apify_token: str):
+    def __init__(self, serper_api_key: str, apify_token: str):
         self.serper_api_key = serper_api_key
-        self.openai_client = openai.OpenAI(api_key=openai_api_key)
+    
         self.apify_client = ApifyClient(apify_token)
         self.company_biz_mapping = {}  # Mapeo de nombres a biz_identifier
 
@@ -25,7 +24,7 @@ class LinkedInContactsSelectiveScraper:
         self.dataset_id = Config.BIGQUERY_DATASET
         self.location = Config.LOCATION
         
-        self.client = genai.Client(
+        self.genai_client = genai.Client(
                 vertexai = True,
                 project=self.project_id,
                 location=self.location,
@@ -47,6 +46,9 @@ class LinkedInContactsSelectiveScraper:
 
         # Resultados finales para guardar en BigQuery
         self.contacts_results = []
+
+    def set_company_biz_mapping(self, company_biz_mapping: Dict):
+        self.company_biz_mapping = company_biz_mapping
 
     def search_company_profiles(self, company_name: str, max_profiles: int = 20) -> List[Dict]:
         """
@@ -151,11 +153,17 @@ class LinkedInContactsSelectiveScraper:
         """
 
         try:
+            """
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=200,
                 temperature=0.3
+            )
+            """
+            response = self.genai_client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prompt,
             )
 
             result = response.choices[0].message.content.strip()

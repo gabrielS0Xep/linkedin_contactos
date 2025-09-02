@@ -3,10 +3,25 @@ from flask_cors import CORS
 from config import Config
 import logging
 from bigquery_services import BigQueryService
+from google import genai
+from google.genai import types
 
-import time 
-from datetime import datetime, date
-from functools import wraps
+from typing import List, Dict, Tuple
+from apify_client import ApifyClient
+
+import re
+from urllib.parse import quote
+from datetime import datetime
+import csv
+import pandas as pd
+from google.cloud import bigquery
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pandas_gbq import to_gbq
+from config import Config
+from bigquery_services import BigQueryService
+
+from linkedin_contacts_scrapper import LinkedInContactsSelectiveScraper
+from secret_manager_service import SecretManager
 
 
 
@@ -22,8 +37,7 @@ app = Flask(__name__)
 CORS(app)  # Habilitar CORS para requests cross-origin
 
 bigquery_service = None
-pub_sub_services = None
-cloud_tasks_service = None
+secret_manager = None
 
 
 def get_services():
@@ -33,79 +47,64 @@ def get_services():
             project=Config.GOOGLE_CLOUD_PROJECT_ID,
             dataset=Config.BIGQUERY_DATASET
         )
-        
+        secret_manager = SecretManager(project=Config.GOOGLE_CLOUD_PROJECT_ID)
         logger.info("✅ Servicios inicializados correctamente")
     except Exception as e:
         logger.error(f"❌ Error inicializando servicios: {e}")
         raise
 
-    return bigquery_service
+    return bigquery_service , secret_manager
 
 
-from google import genai
-from google.genai import types
+@app.route("/status", methods=['GET'])
+def health_check():
+    return {"status": "OK"}
 
 
-import requests
-import json
-import time
-from typing import List, Dict, Tuple
-from apify_client import ApifyClient
-import openai
-import re
-from urllib.parse import quote
-from datetime import datetime
-import csv
-import pandas as pd
-from google.cloud import bigquery
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pandas_gbq import to_gbq
-from config import Config
-from bigquery_services import BigQueryService
 
-from linkedin_contacts_scrapper import LinkedInContactsSelectiveScraper
-from secret_manager_service import SecretManager
+@app.route("/companies", methods=['POST'])
+def companies():
+    data = request.json
+
+    companies = data.get('companies')
+
+    return {"status": "OK"}
+
+
+@app.route("/scrape", methods=['GET'])
+def scrape():
 
 # ================================
 # FUNCIONES PARA CONTROL DE SCRAPPING - ADAPTADAS PARA CONTACTS
-# ================================
-
-
-
-
-def main():
+# =============================
     # 🔑 API KEYS CONFIGURADAS
-    secretManager = SecretManager(project=Config.GOOGLE_CLOUD_PROJECT_ID)
-    SERPER_API_KEY  = secretManager.get_secret('api_key_serper_linkedin_contactos')
+    bigquery_service,secret_manager_services = get_services()
+    SERPER_API_KEY  = secret_manager_services.get_secret('api_key_serper_linkedin_contactos')
     # 🆕 API KEY DE APIFY
-    APIFY_TOKEN = secretManager.get_secret('apify_token')
-
-
-    print("🔧 PREPARANDO TABLAS DE LINKEDIN CONTACTS EN XEPELIN...")
-    print("="*80)
-    bigquery_service = BigQueryService(
-            project=Config.GOOGLE_CLOUD_PROJECT_ID,
-            dataset=Config.BIGQUERY_DATASET
-        )
+    APIFY_TOKEN = secret_manager_services.get_secret('apify_token')
+    
     # PASO 0: Crear tablas si no existen
-    bigquery_service.crear_tabla_empresas_scrapeadas_linkedin_contacts()
-    bigquery_service.crear_tabla_linkedin_contacts_info()
+    if not bigquery_service.table_exists(Config.CONTROL_TABLE_NAME):
+        bigquery_service.crear_tabla_empresas_scrapeadas_linkedin_contacts()
+    if not bigquery_service.table_exists(Config.LINKEDIN_INFO_TABLE_NAME):
+        bigquery_service.crear_tabla_linkedin_contacts_info()
 
     # Cargar empresas desde BigQuery (SIN las ya scrapeadas)
     companies_data = bigquery_service.load_companies_from_bigquery_linkedin_contacts()
 
     if not companies_data:
-        print("❌ No se pudieron cargar empresas desde BigQuery o todas ya fueron scrapeadas. Saliendo...")
-        return
+        logger.error("❌ No se pudieron cargar empresas desde BigQuery o todas ya fueron scrapeadas. ")
+        return jsonify(
+            {"error": "No se pudieron cargar empresas desde BigQuery o todas ya fueron scrapeadas. "}
+            ), 400
 
     # Extraer nombres y crear mapeo de biz_identifier
     companies = [company['name'] for company in companies_data]
     company_biz_mapping = {company['name']: company['biz_identifier'] for company in companies_data}
 
     scraper = LinkedInContactsSelectiveScraper(SERPER_API_KEY, APIFY_TOKEN)
-
     # Configurar mapeo de biz_identifier
-    scraper.company_biz_mapping = company_biz_mapping
+    scraper.set_company_biz_mapping(company_biz_mapping)
 
     print("🚀 LINKEDIN CONTACTS SCRAPER PARA XEPELIN ACTIVADO")
     print("="*80)
@@ -128,23 +127,21 @@ def main():
         )
 
         if not results:
-            print("❌ No se obtuvieron resultados")
-            return
+            logger.error("❌ No se obtuvieron resultados")
+            return jsonify({"error": "No se obtuvieron resultados"}), 400
 
-    except KeyboardInterrupt:
-        print("\n\n⚠️ PROCESO INTERRUMPIDO CON Ctrl+C")
-        # Marcar empresas como scrapeadas incluso si se interrumpe
-        print("📝 Marcando empresas procesadas como scrapeadas...")
-        bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper)
-        return
+    except Exception as e:
+        #logger.error("📝 Marcando empresas procesadas como scrapeadas...")
+        #bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper)
+        return jsonify({"error": "Proceso interrumpido por el usuario"}), 400
 
     # Solo mostrar estadísticas finales si el proceso se completó
     print("\n📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")
-    bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper)
+    #bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper)
 
     # Guardar contactos en BigQuery
     print("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
-    filename = bigquery_service.save_contacts_to_bigquery(scraper)
+    #filename = bigquery_service.save_contacts_to_bigquery(scraper)
 
     # Descargar archivo CSV automáticamente en Colab
     """
@@ -153,25 +150,23 @@ def main():
         files.download(filename)
     """
     # Estadísticas finales
-    print(f"\n{'='*80}")
-    print("📊 ESTADÍSTICAS FINALES LINKEDIN CONTACTS SCRAPER")
-    print(f"{'='*80}")
-    print(f"Empresas procesadas: {len(scraper.test_metrics['companies_processed'])}")
-    print(f"Total perfiles encontrados: {scraper.test_metrics['total_profiles_found']}")
-    print(f"Perfiles evaluados: {scraper.test_metrics['profiles_evaluated']}")
-    print(f"Perfiles seleccionados: {scraper.test_metrics['high_score_profiles']}")
-    print(f"Perfiles scrapeados: {scraper.test_metrics['profiles_scraped']}")
-    print(f"✅ CONTACTOS FINALES OBTENIDOS: {len(scraper.contacts_results)}")
-    print(f"💰 Costo total estimado: ${scraper.test_metrics['cost_estimate']:.2f}")
+    logger.info(f"\n{'='*80}")
+    logger.info("📊 ESTADÍSTICAS FINALES LINKEDIN CONTACTS SCRAPER")
+    logger.info(f"{'='*80}")
+    logger.info(f"Empresas procesadas: {len(scraper.test_metrics['companies_processed'])}")
+    logger.info(f"Total perfiles encontrados: {scraper.test_metrics['total_profiles_found']} \
+        Perfiles evaluados: {scraper.test_metrics['profiles_evaluated']} \
+        Perfiles seleccionados: {scraper.test_metrics['high_score_profiles']} \
+        Perfiles scrapeados: {scraper.test_metrics['profiles_scraped']} \
+        CONTACTOS FINALES OBTENIDOS: {len(scraper.contacts_results)} \
+        Costo total estimado: ${scraper.test_metrics['cost_estimate']:.2f}")
 
     if scraper.contacts_results:
-        print(f"\n🏆 MUESTRA DE CONTACTOS OBTENIDOS:")
+        logger.info(f"\n🏆 MUESTRA DE CONTACTOS OBTENIDOS:")
         for i, contact in enumerate(scraper.contacts_results[:5], 1):
-            print(f"  {i}. {contact['contact_name']} - {contact['contact_position']}")
-            print(f"      Empresa: {contact['biz_name']} (ID: {contact['biz_identifier']})")
-            print(f"      Score IA: {contact['ai_score']}")
-            print(f"      LinkedIn: {contact['linkedin_profile_url']}")
-            print()
+            logger.info(f"  {i}. {contact['contact_name']} - {contact['contact_position']}")
+            logger.info(f" Empresa: {contact['biz_name']} , ID: {contact['biz_identifier']}, Score IA: {contact['ai_score']}, \
+            LinkedIn:{contact['linkedin_profile_url']}")
 
         # Análisis por empresa
         empresas_con_contactos = {}
@@ -181,9 +176,9 @@ def main():
                 empresas_con_contactos[empresa] = 0
             empresas_con_contactos[empresa] += 1
 
-        print(f"\n🏢 CONTACTOS POR EMPRESA:")
+        logger.info(f"\n🏢 CONTACTOS POR EMPRESA:")
         for empresa, count in sorted(empresas_con_contactos.items(), key=lambda x: x[1], reverse=True)[:10]:
-            print(f"  {empresa}: {count} contactos")
+            logger.info(f"  {empresa}: {count} contactos")
 
         # Análisis por posición
         posiciones = {}
@@ -205,18 +200,17 @@ def main():
                 posiciones[posicion_key] = 0
             posiciones[posicion_key] += 1
 
-        print(f"\n🎯 CONTACTOS POR TIPO DE POSICIÓN:")
+        logger.info(f"\n🎯 CONTACTOS POR TIPO DE POSICIÓN:")
         for posicion, count in sorted(posiciones.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {posicion}: {count} contactos")
+            logger.info(f"  {posicion}: {count} contactos")
 
-    print(f"\n✅ PROCESO COMPLETADO EXITOSAMENTE")
-    print(f"📊 Revisa las tablas en BigQuery:")
-    print(f"   📋 Control: xepelin-lab-customer-mx.raw_in_scrapper_contacts.empresas_scrapeadas_linkedin_contacts")
-    print(f"   💾 Contactos: xepelin-lab-customer-mx.raw_in_scrapper_contacts.linkedin_contacts_info")
+    logger.info(f"\n✅ PROCESO COMPLETADO EXITOSAMENTE")
+
 
 # ================================
 # CELDA 4: EJECUTAR EL PROGRAMA
 # ================================
 
+
 if __name__ == "__main__":
-    main()
+    app.run(host=Config.FLASK_HOST, port=Config.PORT, debug=Config.FLASK_DEBUG)
