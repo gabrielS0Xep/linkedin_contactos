@@ -1,0 +1,14 @@
+openai 
+requests 
+pandas 
+pandas-gbq 
+apify-client
+google-cloud-secret-manager
+google-cloud-core
+google-cloud-bigquery
+pandas
+pandas-gbq
+flask
+flask-cors
+python-dotenv
+google-genai
