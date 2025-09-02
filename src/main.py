@@ -207,10 +207,5 @@ def scrape():
     logger.info(f"\n✅ PROCESO COMPLETADO EXITOSAMENTE")
 
 
-# ================================
-# CELDA 4: EJECUTAR EL PROGRAMA
-# ================================
-
-
 if __name__ == "__main__":
-    app.run(host=Config.FLASK_HOST, port=Config.PORT, debug=Config.FLASK_DEBUG)
+    app.run(host="0.0.0.0", port=8080, debug=False)
