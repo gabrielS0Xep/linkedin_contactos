@@ -11,7 +11,7 @@ from secret_manager_service import SecretManager
 load_dotenv()
 
 class Config:
-    GOOGLE_CLOUD_PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT_ID')
+    GOOGLE_CLOUD_PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT_ID','qa-cdp-mx')
     LOCATION = os.getenv('LOCATION', 'us-central1')
     
     # Configuración BigQuery
@@ -29,11 +29,6 @@ class Config:
     scrapper_secret = secretManager.get_secret('api_key_serper_linkedin_contactos')
 
     
-
-    SERPER_API_KEY = json.loads(scrapper_secret)['SERPER_API_KEY']
-    
-    ENRICHLAYER_API_KEY = json.loads(scrapper_secret)['ENRICHLAYER_API_KEY']
-
     # Service Account Configuration - múltiples opciones
     # GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')  
     
@@ -53,10 +48,10 @@ class Config:
     
     # Configuración de generación Gemini
     GEMINI_CONFIG = {
-        "temperature": 0.0,
+        "temperature": 0.3,
         "top_p": 0.95,
         "top_k": 20,
-        "max_output_tokens": 2048,
+        "max_output_tokens": 200,
         "candidate_count": 1
     }
     

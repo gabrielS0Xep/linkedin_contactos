@@ -162,8 +162,10 @@ class LinkedInContactsSelectiveScraper:
             )
             """
             response = self.genai_client.models.generate_content(
-                model="gemini-2.5-pro",
+                model=Config.GEMINI_MODEL_NAME,
                 contents=prompt,
+                config=Config.GEMINI_CONFIG
+
             )
 
             result = response.choices[0].message.content.strip()
