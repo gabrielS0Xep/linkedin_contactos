@@ -235,13 +235,13 @@ class BigQueryService:
         try:
             client = self.__bq_client
             results = client.query(query).to_dataframe()
-            logger.info(f"🔍 Results: {results}")
+        
             # Extraer nombres y biz_identifier, limpiar valores nulos
             companies = []
             for _, row in results.iterrows():
-                if pd.notna(row['name']) and str(row['name']).strip():
+                if pd.notna(row['biz_name']) and str(row['biz_name']).strip():
                     companies.append({
-                        'name': str(row['name']).strip(),
+                        'biz_name': str(row['biz_name']).strip(),
                         'biz_identifier': str(row['biz_identifier']).strip() if pd.notna(row['biz_identifier']) else None
                     })
 
