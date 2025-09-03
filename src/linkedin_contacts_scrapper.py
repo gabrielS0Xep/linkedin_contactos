@@ -371,7 +371,8 @@ class LinkedInContactsSelectiveScraper:
             logger.error(f"❌ Error en scraping: {scraping_results['error']}")
             return []
         
-
+        logger.info(f"🔍 Scraping results: {scraping_results}")
+        
         # 4. Combinar datos de evaluación con scraping
         merged_profiles = self.merge_evaluation_and_scraping(
             selected_profiles,
