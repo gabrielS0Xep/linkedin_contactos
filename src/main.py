@@ -112,8 +112,11 @@ def scrape():
 
         if not results:
             logger.info("❌ No se obtuvieron resultados de acuerdo a los criterios de busqueda")
-            return jsonify({"message": "No se obtuvieron resultados de acuerdo a los criterios de busqueda"}), 200
-
+            """
+            return jsonify({
+                "status": "success",
+                "message": "No se obtuvieron resultados de acuerdo a los criterios de busqueda"}), 200
+            """
     except Exception as e:
 
         logger.error("❌ Error en scraping: {e}")
