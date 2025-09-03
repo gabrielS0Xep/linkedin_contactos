@@ -96,6 +96,72 @@ class BigQueryService:
             table = client.create_table(table)
             logger.info(f"✅ Tabla de datos {dataset_id}.{table_id} creada exitosamente")
 
+    def verificar_empresa_scrapeada(self, biz_identifier: str, company_name: str, table_name: str) -> dict:
+        """
+        Verifica si una empresa ya fue scrapeada en la tabla de control
+        Retorna: {
+            'exists': bool,
+            'needs_scraping': bool,
+            'scraping_date': str or None,
+            'linkedin_found': bool or None
+        }
+        """
+        dataset_id = self.__dataset
+        table_id = table_name
+        
+        try:
+            # Query para verificar si existe el registro
+            query = f"""
+            SELECT scrapping_d, contact_found_flg
+            FROM `{self.__project_id}.{dataset_id}.{table_id}`
+            WHERE biz_identifier = @biz_identifier AND biz_name = @company_name
+            LIMIT 1
+            """
+            
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("biz_identifier", "STRING", biz_identifier),
+                    bigquery.ScalarQueryParameter("company_name", "STRING", company_name),
+                ]
+            )
+            
+            query_job = self.__bq_client.query(query, job_config=job_config)
+            results = list(query_job.result())
+            
+            if results:
+                # El registro existe
+                row = results[0]
+                scraping_date = row.scrapping_d
+                linkedin_found = row.contact_found_flg
+                
+                # Si ambos campos no son nulos, no necesita scraping
+                needs_scraping = scraping_date is None or linkedin_found is None
+                
+                return {
+                    'exists': False,
+                    'needs_scraping': needs_scraping,
+                    'scraping_date': scraping_date.isoformat() if scraping_date else None,
+                    'linkedin_found': linkedin_found
+                }
+            else:
+                # El registro no existe
+                return {
+                    'exists': False,
+                    'needs_scraping': True,
+                    'scraping_date': None,
+                    'linkedin_found': None
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Error verificando empresa scrapeada: {e}")
+            # En caso de error, asumir que necesita scraping
+            return {
+                'exists': False,
+                'needs_scraping': True,
+                'scraping_date': None,
+                'linkedin_found': None
+            }
+
 # esta muy acoplado a scraper
     def marcar_empresas_contacts_como_scrapeadas(self, contacts_results, company_biz_mapping, test_metrics):
         """Marca las empresas como scrapeadas en la tabla empresas_scrapeadas_linkedin_contacts"""

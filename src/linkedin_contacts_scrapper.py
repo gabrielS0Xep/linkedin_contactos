@@ -363,8 +363,9 @@ class LinkedInContactsSelectiveScraper:
             return []
 
         # 2. Evaluar TODOS los perfiles y seleccionar los mejores
-        if all_profiles != []:
-            selected_profiles, _ = self.select_best_profiles(all_profiles, min_score)
+        logger.info(f"🔍 Perfiles encontrados: {len(all_profiles)}")
+        logger.info("🔍 Evaluando perfiles...")
+        selected_profiles, _ = self.select_best_profiles(all_profiles, min_score)
 
         if selected_profiles == []:
             logger.error("❌ Ningún perfil alcanzó el score mínimo")
