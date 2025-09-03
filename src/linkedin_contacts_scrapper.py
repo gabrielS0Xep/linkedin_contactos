@@ -171,9 +171,7 @@ class LinkedInContactsSelectiveScraper:
                 config=Config.GEMINI_CONFIG
 
             )
-            logger.info(f"🔍 Evaluación de response: {response}")
-            logger.info(f"🔍 Texto de la respuesta: {response.text}")
-            result = response.choices[0].message.content.strip()
+            result = response.text.strip()
             logger.info(f"🔍 Evaluación de perfil: {result}")
             # Extraer información estructurada
             score_match = re.search(r'SCORE:\s*(\d+)', result)

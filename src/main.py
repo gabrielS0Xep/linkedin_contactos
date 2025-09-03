@@ -123,7 +123,7 @@ def scrape():
         results = scraper.run_selective_test(
             companies=companies,
             max_per_company=4,  # Máximo 15 perfiles por empresa
-            min_score=1          # Solo scrapear perfiles con score >= 7
+            min_score=0          # Solo scrapear perfiles con score >= 7
         )
 
         if not results:
