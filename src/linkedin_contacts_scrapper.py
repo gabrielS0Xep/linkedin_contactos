@@ -230,51 +230,55 @@ class LinkedInContactsSelectiveScraper:
         """
         Combina los datos de evaluación con los datos scrapeados
         """
-        print("\n🔗 Combinando datos de evaluación con scraping...")
+        logger.info("\n🔗 Combinando datos de evaluación con scraping...")
 
         merged_profiles = []
 
         # Crear un diccionario para mapeo rápido por URL
         scraped_by_url = {}
-        for scraped in scraped_data:
-            profile_url = scraped.get('profileUrl') or scraped.get('url', '')
-            if profile_url:
-                scraped_by_url[profile_url] = scraped
+        try:
+            for scraped in scraped_data:
+                profile_url = scraped.get('profileUrl') or scraped.get('url', '')
+                if profile_url:
+                    scraped_by_url[profile_url] = scraped
 
-        for evaluation in selected_profiles:
-            original_url = evaluation['url']
+            for evaluation in selected_profiles:
+                original_url = evaluation['url']
 
-            # Buscar datos scrapeados correspondientes
-            scraped_data_match = None
-            for url, scraped in scraped_by_url.items():
-                if original_url in url or url in original_url:
-                    scraped_data_match = scraped
-                    break
+                # Buscar datos scrapeados correspondientes
+                scraped_data_match = None
+                for url, scraped in scraped_by_url.items():
+                    if original_url in url or url in original_url:
+                        scraped_data_match = scraped
+                        break
 
-            merged_profile = {
-                # Datos de evaluación
-                'original_search': {
-                    'url': evaluation['url'],
-                    'title': evaluation['title'],
-                    'snippet': evaluation['snippet'],
-                    'company_searched': evaluation['company_searched'],
-                    'query_used': evaluation['query_used']
-                },
-                'ai_evaluation': {
-                    'score': evaluation['ai_score'],
-                    'explanation': evaluation['ai_explanation'],
-                    'details': evaluation['ai_details']
-                },
-                # Datos scrapeados (si existen)
-                'scraped_data': scraped_data_match if scraped_data_match else None,
-                'scraping_success': scraped_data_match is not None
-            }
-            logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
-            logger.info(f"✅ Perfiles combinados: {merged_profile}")
-            merged_profiles.append(merged_profile)
+                merged_profile = {
+                    # Datos de evaluación
+                    'original_search': {
+                        'url': evaluation['url'],
+                        'title': evaluation['title'],
+                        'snippet': evaluation['snippet'],
+                        'company_searched': evaluation['company_searched'],
+                        'query_used': evaluation['query_used']
+                    },
+                    'ai_evaluation': {
+                        'score': evaluation['ai_score'],
+                        'explanation': evaluation['ai_explanation'],
+                        'details': evaluation['ai_details']
+                    },
+                    # Datos scrapeados (si existen)
+                    'scraped_data': scraped_data_match if scraped_data_match else None,
+                    'scraping_success': scraped_data_match is not None
+                }
+                logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
+                logger.info(f"✅ Perfiles combinados: {merged_profile}")
+                merged_profiles.append(merged_profile)
 
-        print(f"✅ Combinados {len(merged_profiles)} perfiles")
-        return merged_profiles
+            print(f"✅ Combinados {len(merged_profiles)} perfiles")
+            return merged_profiles
+        except Exception as e:
+            logger.error(f"❌ Error en merge_evaluation_and_scraping: {e}")
+            return []
 
     def process_contacts_for_bigquery(self, merged_profiles: List[Dict]):
         """
@@ -372,7 +376,7 @@ class LinkedInContactsSelectiveScraper:
             return []
         
         logger.info(f"🔍 Scraping results: {scraping_results}")
-        
+
         # 4. Combinar datos de evaluación con scraping
         merged_profiles = self.merge_evaluation_and_scraping(
             selected_profiles,
