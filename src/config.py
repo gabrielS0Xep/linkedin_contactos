@@ -51,7 +51,7 @@ class Config:
         "temperature": 0.3,
         "top_p": 0.95,
         "top_k": 20,
-        "max_output_tokens": 200,
+        "max_output_tokens": 500,
         "candidate_count": 1
     }
     
