@@ -132,26 +132,20 @@ class LinkedInContactsSelectiveScraper:
                 )
 
                 structured_info = genia_service.extract_structured_info(result)
-
-                score = structured_info['score']
-                explanation = structured_info['explicacion']
-                details = structured_info['details']
-
+        
                 evaluation = {
                     **profile_data,
-                    'ai_score': score,
-                    'ai_explanation': explanation,
-                    'ai_details': details,
+                    **structured_info,
                     'evaluation_timestamp': datetime.now().isoformat()
                 }
                 logger.info(f"🔍 Evaluacion: {evaluation}")
                 evaluated_profiles.append(evaluation)
 
-                if score >= min_score:
+                if structured_info['score'] >= min_score:
                     high_score_profiles.append(evaluation)
-                    logger.info(f"    ✅ SELECCIONADO - Score: {score} - {explanation[:50]}...")
+                    logger.info(f"    ✅ SELECCIONADO - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
                 else:
-                    logger.info(f"    ❌ Descartado - Score: {score} - {explanation[:50]}...")
+                    logger.info(f"    ❌ Descartado - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
 
                 time.sleep(0.3)  # Rate limiting para OpenAI
 
