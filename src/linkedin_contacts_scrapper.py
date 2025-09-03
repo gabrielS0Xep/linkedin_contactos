@@ -119,9 +119,6 @@ class LinkedInContactsSelectiveScraper:
         """
         Evalúa todos los perfiles y selecciona solo los mejores
         """
-        print(f"\n🤖 Evaluando {len(all_profiles)} perfiles con IA...")
-        print(f"🎯 Buscando perfiles con score >= {min_score}")
-
         evaluated_profiles = []
         high_score_profiles = []
         genia_service = GenIaService(self.project_id, self.location)
@@ -147,19 +144,19 @@ class LinkedInContactsSelectiveScraper:
                     'ai_details': details,
                     'evaluation_timestamp': datetime.now().isoformat()
                 }
-            
+                logger.info(f"🔍 Evaluacion: {evaluation}")
                 evaluated_profiles.append(evaluation)
 
                 if score >= min_score:
                     high_score_profiles.append(evaluation)
-                    print(f"    ✅ SELECCIONADO - Score: {score} - {explanation[:50]}...")
+                    logger.info(f"    ✅ SELECCIONADO - Score: {score} - {explanation[:50]}...")
                 else:
-                    print(f"    ❌ Descartado - Score: {score} - {explanation[:50]}...")
+                    logger.info(f"    ❌ Descartado - Score: {score} - {explanation[:50]}...")
 
                 time.sleep(0.3)  # Rate limiting para OpenAI
 
             except Exception as e:
-                print(f"    ❌ Error evaluando perfil: {str(e)}")
+                logger.info(f"    ❌ Error evaluando perfil: {str(e)}")
                 continue
 
         self.test_metrics['profiles_evaluated'] = len(evaluated_profiles)
@@ -365,7 +362,6 @@ class LinkedInContactsSelectiveScraper:
         # 2. Evaluar TODOS los perfiles y seleccionar los mejores
         logger.info(f"🔍 Perfiles encontrados: {len(all_profiles)}")
         logger.info(f"🔍 Perfiles: {all_profiles}")
-        logger.info("🔍 Evaluando perfiles...")
 
         selected_profiles, _ = self.select_best_profiles(all_profiles, min_score)
 
