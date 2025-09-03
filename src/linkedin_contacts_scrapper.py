@@ -61,11 +61,12 @@ class LinkedInContactsSelectiveScraper:
 
         # Queries más específicas para México (adaptado del original)
         search_queries = [
-            f'site:mx.linkedin.com/in/ "{company_name}"',
             f'site:linkedin.com/in/ "{company_name}" México (CFO OR CEO OR Controller OR "Finance Director")',
             f'site:linkedin.com/in/ "{company_name}" México (finanzas OR contabilidad OR tesorería)',
             f'site:linkedin.com/in/ "{company_name}" México ("Financial Manager" OR "Accounting Manager")',
             f'site:linkedin.com/in/ "{company_name}" "Ciudad de México" (Finance OR Treasury OR Credit)',
+            f'site:mx.linkedin.com/in/ "{company_name}"',
+
         ]
 
         for query in search_queries:
