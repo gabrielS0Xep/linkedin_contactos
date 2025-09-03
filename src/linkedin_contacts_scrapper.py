@@ -61,6 +61,7 @@ class LinkedInContactsSelectiveScraper:
 
         # Queries más específicas para México (adaptado del original)
         search_queries = [
+            f'site:mx.linkedin.com/in/ "{company_name}"',
             f'site:linkedin.com/in/ "{company_name}" México (CFO OR CEO OR Controller OR "Finance Director")',
             f'site:linkedin.com/in/ "{company_name}" México (finanzas OR contabilidad OR tesorería)',
             f'site:linkedin.com/in/ "{company_name}" México ("Financial Manager" OR "Accounting Manager")',
@@ -413,12 +414,10 @@ class LinkedInContactsSelectiveScraper:
         """
         Ejecuta el test selectivo completo
         """
-        print("🧪 INICIANDO LINKEDIN CONTACTS SELECTIVE SCRAPER")
-        print("=" * 60)
-        print(f"📋 Configuración:")
+  
         logger.info(f"  Empresas: {len(companies)}")
-        print(f"  Máx. perfiles por empresa: {max_per_company}")
-        print(f"  Score mínimo para scraping: {min_score}")
+        logger.info(f"  Máx. perfiles por empresa: {max_per_company}")
+        logger.info(f"  Score mínimo para scraping: {min_score}")
 
         self.test_metrics['start_time'] = datetime.now()
         self.test_metrics['companies_processed'] = companies
