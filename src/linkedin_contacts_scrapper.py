@@ -13,13 +13,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 class LinkedInContactsSelectiveScraper:
-    def __init__(self, serper_api_key: str, apify_token: str):
+    def __init__(self, serper_api_key: str, apify_token: str , company_biz_mapping: Dict):
         self.serper_api_key = serper_api_key
     
         self.apify_client = ApifyClient(apify_token)
-        self.company_biz_mapping = {}  # Mapeo de nombres a biz_identifier
+        self.company_biz_mapping = company_biz_mapping  # Mapeo de nombres a biz_identifier
 
-        # NUEVO: Configuración de proyecto y dataset específicos
+        # Configuración de proyecto y dataset específicos
         self.project_id = Config.GOOGLE_CLOUD_PROJECT_ID
         self.dataset_id = Config.BIGQUERY_DATASET
         self.location = Config.LOCATION
@@ -107,10 +107,9 @@ class LinkedInContactsSelectiveScraper:
                 time.sleep(1)  # Rate limiting
 
             except Exception as e:
-                print(f"  ❌ Error en búsqueda: {str(e)}")
+                logger.error(f"  ❌ Error en búsqueda: {str(e)}")
                 continue
 
-        print(f"  📊 Total encontrados para {company_name}: {len(linkedin_profiles)}")
         return linkedin_profiles
 
 ###Esta funcion es la que encuentra con serper api los links de los perfiles de linkedin
@@ -128,18 +127,15 @@ class LinkedInContactsSelectiveScraper:
         high_score_profiles = []
         genia_service = GenIaService(self.project_id, self.location)
 
-        for i, profile_data in enumerate(all_profiles, 1):
+        for profile_data in enumerate(all_profiles, 1):
             try:
-                print(f"  Evaluando {i}/{len(all_profiles)}: {profile_data['title'][:40]}...")
-
-
+            
                 result = genia_service.evaluate_profile_relevance_detailed(
                     profile_data,
                     profile_data['company_searched']
                 )
 
                 structured_info = genia_service.extract_structured_info(result)
-
 
                 score = structured_info['score']
                 explanation = structured_info['explicacion']
@@ -152,7 +148,7 @@ class LinkedInContactsSelectiveScraper:
                     'ai_details': details,
                     'evaluation_timestamp': datetime.now().isoformat()
                 }
-
+            
                 evaluated_profiles.append(evaluation)
 
                 if score >= min_score:
@@ -192,20 +188,20 @@ class LinkedInContactsSelectiveScraper:
         # Calcular costo estimado
         estimated_cost = (len(profile_urls) / 1000) * 10
         self.test_metrics['cost_estimate'] = estimated_cost
-        print(f"💰 Costo estimado: ${estimated_cost:.2f}")
+        logger.info(f"💰 Costo estimado: ${estimated_cost:.2f}")
 
         try:
             run_input = {
                 "profileUrls": profile_urls
             }
 
-            print("⏳ Ejecutando dev_fusion/linkedin-profile-scraper...")
+            logger.info("⏳ Ejecutando dev_fusion/linkedin-profile-scraper...")
             start_time = time.time()
 
             run = self.apify_client.actor("dev_fusion/linkedin-profile-scraper").call(run_input=run_input)
 
             scraping_time = time.time() - start_time
-            print(f"⏱️ Tiempo de scraping: {scraping_time:.1f} segundos")
+            logger.info(f"⏱️ Tiempo de scraping: {scraping_time:.1f} segundos")
 
             # Obtener resultados
             scraped_profiles = []
@@ -353,7 +349,7 @@ class LinkedInContactsSelectiveScraper:
         self.test_metrics['start_time'] = datetime.now()
         self.test_metrics['companies_processed'] = companies
 
-        # 1. Buscar perfiles por empresa (máx. 20 cada una)
+        # 1. Buscar perfiles por empresa (máx. limite selecionado por empresa)
         all_profiles = []
         for company in companies:
             company_profiles = self.search_company_profiles(company, max_per_company)
@@ -363,22 +359,22 @@ class LinkedInContactsSelectiveScraper:
         self.test_metrics['total_profiles_found'] = len(all_profiles)
 
         if not all_profiles:
-            print("❌ No se encontraron perfiles")
-            return None
+            logger.error("❌ No se encontraron perfiles que cumplan con los criterios de busqueda")
+            return []
 
         # 2. Evaluar TODOS los perfiles y seleccionar los mejores
-        selected_profiles, all_evaluations = self.select_best_profiles(all_profiles, min_score)
+        selected_profiles, _ = self.select_best_profiles(all_profiles, min_score)
 
         if not selected_profiles:
             logger.error("❌ Ningún perfil alcanzó el score mínimo")
-            return None
+            return []
 
         # 3. Scrapear SOLO los perfiles seleccionados
         scraping_results = self.scrape_selected_profiles(selected_profiles)
 
         if not scraping_results['success']:
             print(f"❌ Error en scraping: {scraping_results['error']}")
-            return None
+            return []
 
         # 4. Combinar datos de evaluación con scraping
         merged_profiles = self.merge_evaluation_and_scraping(
@@ -387,6 +383,6 @@ class LinkedInContactsSelectiveScraper:
         )
 
         # 5. NUEVO: Procesar contactos para BigQuery
-        self.process_contacts_for_bigquery(merged_profiles)
+        #self.process_contacts_for_bigquery(merged_profiles)
 
         return merged_profiles

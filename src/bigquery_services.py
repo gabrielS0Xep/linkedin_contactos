@@ -141,14 +141,15 @@ class BigQueryService:
                     if_exists='append'
                 )
 
-                print(f"✅ Marcadas {len(df_empresas)} empresas como scrapeadas en BigQuery")
-                print(f"   📊 Con contactos encontrados: {len([d for d in datos_insertar if d['encontro_linkedin']])}")
-                print(f"   📊 Sin contactos: {len([d for d in datos_insertar if not d['encontro_linkedin']])}")
+                #print(f"✅ Marcadas {len(df_empresas)} empresas como scrapeadas en BigQuery")
+                # se podria hacer con un filter asi no hacemos algo con complejidad n
+                # print(f"   📊 Con contactos encontrados: {len([d for d in datos_insertar if d['encontro_linkedin']])}")
+                #print(f"   📊 Sin contactos: {len([d for d in datos_insertar if not d['encontro_linkedin']])}")
 
             except Exception as e:
-                print(f"❌ Error marcando empresas como scrapeadas: {e}")
+                logger.error(f"❌ Error marcando empresas como scrapeadas: {e}")
         else:
-            print("⚠️ No hay datos para marcar como scrapeadas")
+            logger.warning("⚠️ No hay datos para marcar como scrapeadas")
 
     def save_contacts_to_bigquery(self,contacts_results):
         """Guardar contactos en la tabla linkedin_contacts_info"""
@@ -157,7 +158,8 @@ class BigQueryService:
             return None
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"linkedin_contacts_{timestamp}.csv"
+        #filename = f"linkedin_contacts_{timestamp}.csv"
+
         """
         No me interesa guardar CSV localmente ahora, solo subo a BigQuery por ahi lo subo a GCS
         # Guardar CSV local primero
@@ -221,15 +223,15 @@ class BigQueryService:
         except Exception as e:
             logger.error(f"❌ Error subiendo contactos a BigQuery: {e}")
 
-        return filename
+        #return filename
 
-    def load_companies_from_bigquery_linkedin_contacts(self) -> List[Dict]:
+    def load_companies_from_bigquery_linkedin_contacts(self , limit: int = 1) -> List[Dict]:
         """Ejecuta query en BigQuery y extrae nombres de empresa y biz_identifier - CON CONTROL DE DUPLICADOS PARA CONTACTS"""
 
 
         query = f"""
-        SELECT * FROM `{self.__project_id}.{self.__dataset}.{Config.CONTROL_TABLE_NAME}`
-        WHERE (contact_found_flg = FALSE or contact_found_flg is null) AND scrapping_d is null limit 1
+        SELECT biz_name, biz_identifier FROM `{self.__project_id}.{self.__dataset}.{Config.CONTROL_TABLE_NAME}`
+        WHERE (contact_found_flg = FALSE or contact_found_flg is null) AND scrapping_d is null limit {limit}
         """
         logger.info(f"🔍 Query: {query}")
         try:

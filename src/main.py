@@ -62,21 +62,13 @@ def health_check():
 
 
 
-@app.route("/companies", methods=['POST'])
-def companies():
-    data = request.json
-
-    companies = data.get('companies')
-
-    return jsonify({"message": "Proceso completado exitosamente , companies: " + companies}), 200
-
-
 @app.route("/scrape", methods=['GET'])
 def scrape():
 
 # ================================
 # FUNCIONES PARA CONTROL DE SCRAPPING - ADAPTADAS PARA CONTACTS
 # =============================
+
     # 🔑 API KEYS CONFIGURADAS
     bigquery_service,secret_manager_services = get_services()
     SERPER_API_KEY  = secret_manager_services.get_secret('api_key_serper_linkedin_contactos')
@@ -89,8 +81,14 @@ def scrape():
     if not bigquery_service.table_exists(Config.LINKEDIN_INFO_TABLE_NAME):
         bigquery_service.crear_tabla_linkedin_contacts_info()
 
-    # Cargar empresas desde BigQuery (SIN las ya scrapeadas)
-    companies_data = bigquery_service.load_companies_from_bigquery_linkedin_contacts()
+
+    data = request.json()
+    batch_size = data.get('batch_size', 1)
+    min_score = data.get('min_score', 7)
+    max_per_company = data.get('max_per_company', 4)
+
+    # Cargar empresas no scrapeadas
+    companies_data = bigquery_service.load_companies_from_bigquery_linkedin_contacts(batch_size)
 
     if not companies_data:
         logger.error("❌ No se pudieron cargar empresas desde BigQuery o todas ya fueron scrapeadas. ")
@@ -102,53 +100,40 @@ def scrape():
     companies = [company['biz_name'] for company in companies_data]
     company_biz_mapping = {company['biz_name']: company['biz_identifier'] for company in companies_data}
 
-    scraper = LinkedInContactsSelectiveScraper(SERPER_API_KEY, APIFY_TOKEN)
-    # Configurar mapeo de biz_identifier
-    scraper.set_company_biz_mapping(company_biz_mapping)
-
-    print("🚀 LINKEDIN CONTACTS SCRAPER PARA XEPELIN ACTIVADO")
-    print("="*80)
-    print("🏢 Project: xepelin-lab-customer-mx")
-    print("📊 Dataset: raw_in_scrapper_contacts")
-    print("🛡️ Control de duplicados: empresas_scrapeadas_linkedin_contacts")
-    print("💾 Datos de contactos: linkedin_contacts_info")
-    print("🤖 Usando OpenAI para evaluación")
-    print("🕷️ Usando Apify para scraping detallado")
-    print(f"📊 Empresas a procesar (SIN duplicados): {len(companies)}")
-    print(f"💰 Costo estimado total: ~${len(companies) * 0.5:.2f}")
-    print("="*80)
+    scraper = LinkedInContactsSelectiveScraper(SERPER_API_KEY, APIFY_TOKEN, company_biz_mapping)
 
     try:
         # Ejecutar scraping selectivo
         results = scraper.run_selective_test(
             companies=companies,
-            max_per_company=4,  # Máximo 15 perfiles por empresa
-            min_score=0          # Solo scrapear perfiles con score >= 7
+            max_per_company=max_per_company,  # Máximo 15 perfiles por empresa
+            min_score=min_score          # Score Minimo que devolvera de contactos
         )
 
         if not results:
-            logger.error("❌ No se obtuvieron resultados")
-            return jsonify({"error": "No se obtuvieron resultados"}), 400
+            logger.info("❌ No se obtuvieron resultados de acuerdo a los criterios de busqueda")
+            return jsonify({"message": "No se obtuvieron resultados de acuerdo a los criterios de busqueda"}), 200
 
     except Exception as e:
-        #logger.error("📝 Marcando empresas procesadas como scrapeadas...")
-        #bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper)
+
+        logger.error("❌ Error en scraping: {e}")
         return jsonify({f"error": f"{e}"}), 400
 
     # Solo mostrar estadísticas finales si el proceso se completó
-    print("\n📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")
-    #bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper)
+    logger.info("📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")
+
+    bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper.contacts_results, company_biz_mapping, scraper.test_metrics)
 
     # Guardar contactos en BigQuery
-    print("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
-    #filename = bigquery_service.save_contacts_to_bigquery(scraper)
+    logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
+    bigquery_service.save_contacts_to_bigquery(scraper)
 
     # Descargar archivo CSV automáticamente en Colab
     """
     if filename:
         from google.colab import files
         files.download(filename)
-    """
+    
     # Estadísticas finales
     logger.info(f"\n{'='*80}")
     logger.info("📊 ESTADÍSTICAS FINALES LINKEDIN CONTACTS SCRAPER")
@@ -160,7 +145,7 @@ def scrape():
         Perfiles scrapeados: {scraper.test_metrics['profiles_scraped']} \
         CONTACTOS FINALES OBTENIDOS: {len(scraper.contacts_results)} \
         Costo total estimado: ${scraper.test_metrics['cost_estimate']:.2f}")
-
+    
     contacts_results = scraper.contacts_results
     if contacts_results:
         logger.info(f"\n🏆 MUESTRA DE CONTACTOS OBTENIDOS:")
@@ -201,11 +186,19 @@ def scrape():
                 posiciones[posicion_key] = 0
             posiciones[posicion_key] += 1
 
-        logger.info(f"\n🎯 CONTACTOS POR TIPO DE POSICIÓN:")
-        for posicion, count in sorted(posiciones.items(), key=lambda x: x[1], reverse=True):
-            logger.info(f"  {posicion}: {count} contactos")
+        #TODO: Guardar en bigquery
+    """
 
-    return jsonify({"message": "Proceso completado exitosamente"}), 200
+    return jsonify(
+        {"message": "Proceso completado exitosamente",
+        "empresas procesadas": len(scraper.test_metrics['companies_processed']),
+        "total perfiles encontrados": scraper.test_metrics['total_profiles_found'],
+        "perfiles evaluados": scraper.test_metrics['profiles_evaluated'],
+        "perfiles seleccionados": scraper.test_metrics['high_score_profiles'],
+        "perfiles scrapeados": scraper.test_metrics['profiles_scraped'],
+        "contactos finales obtenidos": len(scraper.contacts_results),
+        "costo total estimado": scraper.test_metrics['cost_estimate']
+    }), 200
 
 
 if __name__ == "__main__":
