@@ -100,9 +100,9 @@ class GenIaService:
                 'explicacion': explicacion
             }
 
-            logger.info(f"🔍 Evaluación de perfil: {result}")
+            logger.info(f"🔍 Evaluación informacion estructurada: {structured_info}")
             return structured_info
 
         except Exception as e:
-            print(f"❌ Error evaluando: {str(e)}")
+            logger.error(f"❌ Error evaluando: {str(e)}")
             raise e
