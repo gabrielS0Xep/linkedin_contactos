@@ -10,7 +10,8 @@ from config import Config
 from google import genai
 from google.genai import types
 
-
+import logging
+logger = logging.getLogger(__name__)
 
 class LinkedInContactsSelectiveScraper:
     def __init__(self, serper_api_key: str, apify_token: str):
@@ -415,7 +416,7 @@ class LinkedInContactsSelectiveScraper:
         print("🧪 INICIANDO LINKEDIN CONTACTS SELECTIVE SCRAPER")
         print("=" * 60)
         print(f"📋 Configuración:")
-        print(f"  Empresas: {len(companies)}")
+        logger.info(f"  Empresas: {len(companies)}")
         print(f"  Máx. perfiles por empresa: {max_per_company}")
         print(f"  Score mínimo para scraping: {min_score}")
 
