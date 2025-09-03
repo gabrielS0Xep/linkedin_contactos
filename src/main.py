@@ -132,67 +132,6 @@ def scrape():
     logger.info(f"Contactos: {scraper.contacts_results}")
    # bigquery_service.save_contacts_to_bigquery(scraper.contacts_results)
 
-    # Descargar archivo CSV automáticamente en Colab
-    """
-    if filename:
-        from google.colab import files
-        files.download(filename)
-    
-    # Estadísticas finales
-    logger.info(f"\n{'='*80}")
-    logger.info("📊 ESTADÍSTICAS FINALES LINKEDIN CONTACTS SCRAPER")
-    logger.info(f"{'='*80}")
-    logger.info(f"Empresas procesadas: {len(scraper.test_metrics['companies_processed'])}")
-    logger.info(f"Total perfiles encontrados: {scraper.test_metrics['total_profiles_found']} \
-        Perfiles evaluados: {scraper.test_metrics['profiles_evaluated']} \
-        Perfiles seleccionados: {scraper.test_metrics['high_score_profiles']} \
-        Perfiles scrapeados: {scraper.test_metrics['profiles_scraped']} \
-        CONTACTOS FINALES OBTENIDOS: {len(scraper.contacts_results)} \
-        Costo total estimado: ${scraper.test_metrics['cost_estimate']:.2f}")
-    
-    contacts_results = scraper.contacts_results
-    if contacts_results:
-        logger.info(f"\n🏆 MUESTRA DE CONTACTOS OBTENIDOS:")
-        for i, contact in enumerate(contacts_results[:5], 1):
-            logger.info(f"  {i}. {contact['contact_name']} - {contact['contact_position']}")
-            logger.info(f" Empresa: {contact['biz_name']} , ID: {contact['biz_identifier']}, Score IA: {contact['ai_score']}, \
-            LinkedIn:{contact['linkedin_profile_url']}")
-
-        # Análisis por empresa
-        empresas_con_contactos = {}
-        for contact in contacts_results:
-            empresa = contact['biz_name']
-            if empresa not in empresas_con_contactos:
-                empresas_con_contactos[empresa] = 0
-            empresas_con_contactos[empresa] += 1
-
-        logger.info(f"\n🏢 CONTACTOS POR EMPRESA:")
-        for empresa, count in sorted(empresas_con_contactos.items(), key=lambda x: x[1], reverse=True)[:10]:
-            logger.info(f"  {empresa}: {count} contactos")
-
-        # Análisis por posición
-        posiciones = {}
-        for contact in contacts_results:
-            posicion = contact['contact_position'].lower()
-            # Simplificar posiciones similares
-            if any(word in posicion for word in ['cfo', 'chief financial', 'director financiero']):
-                posicion_key = 'CFO/Director Financiero'
-            elif any(word in posicion for word in ['ceo', 'chief executive', 'director general']):
-                posicion_key = 'CEO/Director General'
-            elif any(word in posicion for word in ['controller', 'contralor']):
-                posicion_key = 'Controller'
-            elif any(word in posicion for word in ['manager', 'gerente']):
-                posicion_key = 'Manager/Gerente'
-            else:
-                posicion_key = 'Otros'
-
-            if posicion_key not in posiciones:
-                posiciones[posicion_key] = 0
-            posiciones[posicion_key] += 1
-
-        #TODO: Guardar en bigquery
-    """
-
     return jsonify(
         {"message": "Proceso completado exitosamente",
         "empresas procesadas": len(scraper.test_metrics['companies_processed']),

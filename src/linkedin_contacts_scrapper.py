@@ -61,7 +61,6 @@ class LinkedInContactsSelectiveScraper:
             f'site:mx.linkedin.com/in/ "{company_name}"',
 
         ]
-
         for query in search_queries:
             if len(linkedin_profiles) >= max_profiles:
                 break
@@ -352,6 +351,7 @@ class LinkedInContactsSelectiveScraper:
         # 1. Buscar perfiles por empresa (máx. limite selecionado por empresa)
         all_profiles = []
         for company in companies:
+            logger.info(f"🔍 Empresa: {company}")
             company_profiles = self.search_company_profiles(company, max_per_company)
             all_profiles.extend(company_profiles)
             time.sleep(1)  # Pausa entre empresas
