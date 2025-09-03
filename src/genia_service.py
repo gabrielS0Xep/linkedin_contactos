@@ -12,8 +12,8 @@ class GenIaService:
     def __init__(self, project_id: str, location: str):
         self.genai_client = genai.Client(
             vertexai = True,
-            project=self.project_id,
-            location=self.location,
+            project=project_id,
+            location=location,
             http_options=types.HttpOptions(api_version='v1')
         )
     
