@@ -161,7 +161,7 @@ class LinkedInContactsSelectiveScraper:
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=200,
+                max_tokens=500,
                 temperature=0.3
             )
             """
@@ -172,6 +172,7 @@ class LinkedInContactsSelectiveScraper:
 
             )
             logger.info(f"🔍 Evaluación de response: {response}")
+            logger.info(f"🔍 Texto de la respuesta: {response.text}")
             result = response.choices[0].message.content.strip()
             logger.info(f"🔍 Evaluación de perfil: {result}")
             # Extraer información estructurada
