@@ -173,7 +173,7 @@ class LinkedInContactsSelectiveScraper:
         logger.info(f"\n📊 RESULTADOS DE EVALUACIÓN:")
         logger.info(f"  Perfiles evaluados: {len(evaluated_profiles)}")
         logger.info(f"  Perfiles seleccionados: {len(high_score_profiles)}")
-        logger.info(f"  Tasa de selección: {len(high_score_profiles)/len(evaluated_profiles)*100:.1f}%")
+        logger.info(f"  Tasa de selección: {len(high_score_profiles)/min(len(evaluated_profiles),1)*100:.1f}%")
 
         return high_score_profiles, evaluated_profiles
 
