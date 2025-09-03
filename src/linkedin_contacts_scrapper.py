@@ -195,7 +195,6 @@ class LinkedInContactsSelectiveScraper:
 
             # Obtener resultados
             scraped_profiles = []
-            logger.info(f"🔍 Scraping completado: {run['defaultDatasetId']}")
             for item in self.apify_client.dataset(run["defaultDatasetId"]).iterate_items():
                 logger.info(f"🔍 Scraping: {item}")
                 scraped_profiles.append(item)
@@ -210,10 +209,10 @@ class LinkedInContactsSelectiveScraper:
 
             self.test_metrics['profiles_with_emails'] = profiles_with_emails
 
-            print(f"✅ Scraping completado:")
-            print(f"  Perfiles scrapeados: {len(scraped_profiles)}")
-            print(f"  Perfiles con email: {profiles_with_emails}")
-            print(f"  Tasa de emails: {profiles_with_emails/len(scraped_profiles)*100:.1f}%")
+            logger.info(f"✅ Scraping completado:")
+            logger.info(f"  Perfiles scrapeados: {len(scraped_profiles)}")
+            logger.info(f"  Perfiles con email: {profiles_with_emails}")
+            logger.info(f"  Tasa de emails: {profiles_with_emails/len(scraped_profiles)*100:.1f}%")
 
             return {
                 'success': True,
@@ -224,7 +223,7 @@ class LinkedInContactsSelectiveScraper:
             }
 
         except Exception as e:
-            print(f"❌ Error en scraping: {e}")
+            logger.error(f"❌ Error en scraping: {e}")
             return {'success': False, 'error': str(e)}
 
     def merge_evaluation_and_scraping(self, selected_profiles: List[Dict], scraped_data: List[Dict]) -> List[Dict]:
@@ -369,8 +368,9 @@ class LinkedInContactsSelectiveScraper:
         scraping_results = self.scrape_selected_profiles(selected_profiles)
 
         if not scraping_results['success']:
-            print(f"❌ Error en scraping: {scraping_results['error']}")
+            logger.error(f"❌ Error en scraping: {scraping_results['error']}")
             return []
+        
 
         # 4. Combinar datos de evaluación con scraping
         merged_profiles = self.merge_evaluation_and_scraping(
