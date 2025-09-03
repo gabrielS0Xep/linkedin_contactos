@@ -62,7 +62,7 @@ def health_check():
 
 
 
-@app.route("/scrape", methods=['GET'])
+@app.route("/scrape", methods=['POST'])
 def scrape():
 
 # ================================
@@ -82,7 +82,7 @@ def scrape():
         bigquery_service.crear_tabla_linkedin_contacts_info()
 
 
-    data = request.json()
+    data = request.get_json()
     batch_size = data.get('batch_size', 1)
     min_score = data.get('min_score', 7)
     max_per_company = data.get('max_per_company', 4)
