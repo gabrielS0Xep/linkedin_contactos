@@ -161,16 +161,17 @@ def scrape():
         CONTACTOS FINALES OBTENIDOS: {len(scraper.contacts_results)} \
         Costo total estimado: ${scraper.test_metrics['cost_estimate']:.2f}")
 
-    if scraper.contacts_results:
+    contacts_results = scraper.contacts_results
+    if contacts_results:
         logger.info(f"\n🏆 MUESTRA DE CONTACTOS OBTENIDOS:")
-        for i, contact in enumerate(scraper.contacts_results[:5], 1):
+        for i, contact in enumerate(contacts_results[:5], 1):
             logger.info(f"  {i}. {contact['contact_name']} - {contact['contact_position']}")
             logger.info(f" Empresa: {contact['biz_name']} , ID: {contact['biz_identifier']}, Score IA: {contact['ai_score']}, \
             LinkedIn:{contact['linkedin_profile_url']}")
 
         # Análisis por empresa
         empresas_con_contactos = {}
-        for contact in scraper.contacts_results:
+        for contact in contacts_results:
             empresa = contact['biz_name']
             if empresa not in empresas_con_contactos:
                 empresas_con_contactos[empresa] = 0
@@ -182,7 +183,7 @@ def scrape():
 
         # Análisis por posición
         posiciones = {}
-        for contact in scraper.contacts_results:
+        for contact in contacts_results:
             posicion = contact['contact_position'].lower()
             # Simplificar posiciones similares
             if any(word in posicion for word in ['cfo', 'chief financial', 'director financiero']):
