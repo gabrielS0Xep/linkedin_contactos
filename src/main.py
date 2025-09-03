@@ -83,9 +83,9 @@ def scrape():
 
 
     data = request.get_json()
-    batch_size = data.get('batch_size', 1)
-    min_score = data.get('min_score', 7)
-    max_per_company = data.get('max_per_company', 4)
+    batch_size = int(str(data.get('batch_size', 1)))
+    min_score = int(str(data.get('min_score', 7)))
+    max_per_company = int(str(data.get('max_per_company', 4)))
 
     # Cargar empresas no scrapeadas
     companies_data = bigquery_service.load_companies_from_bigquery_linkedin_contacts(batch_size)
