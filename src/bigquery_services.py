@@ -158,23 +158,6 @@ class BigQueryService:
             return None
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        #filename = f"linkedin_contacts_{timestamp}.csv"
-
-        """
-        No me interesa guardar CSV localmente ahora, solo subo a BigQuery por ahi lo subo a GCS
-        # Guardar CSV local primero
-        fieldnames = [
-            'biz_identifier', 'biz_name', 'contact_name', 'contact_position',
-            'linkedin_profile_url', 'ai_score', 'scraped_data', 'scraped_at'
-        ]
-
-        with open(filename, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(scraper.contacts_results)
-
-        print(f"💾 Contactos guardados localmente en: {filename}")
-        """
        
         # Subir a BigQuery
         try:

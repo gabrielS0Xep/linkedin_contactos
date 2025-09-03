@@ -126,7 +126,8 @@ def scrape():
 
     # Guardar contactos en BigQuery
     logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
-    bigquery_service.save_contacts_to_bigquery(scraper)
+    logger.info(f"Contactos: {scraper.contacts_results}")
+   # bigquery_service.save_contacts_to_bigquery(scraper.contacts_results)
 
     # Descargar archivo CSV automáticamente en Colab
     """
