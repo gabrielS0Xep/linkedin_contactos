@@ -99,6 +99,7 @@ class LinkedInContactsSelectiveScraper:
 
                             if 'linkedin.com/in/' in link and len(linkedin_profiles) < max_profiles:
                                 # Verificar duplicados
+                                logger.info(f"🔍 Perfil encontrado: {link}")
                                 existing_urls = [p['url'] for p in linkedin_profiles]
                                 if link not in existing_urls:
                                     linkedin_profiles.append({
@@ -108,7 +109,7 @@ class LinkedInContactsSelectiveScraper:
                                         'company_searched': company_name,
                                         'query_used': query
                                     })
-                                    print(f"  ✓ Perfil {len(linkedin_profiles)}: {title[:50]}...")
+                                    logger.info(f"  ✓ Perfil {len(linkedin_profiles)}: {title[:50]}...")
 
                 time.sleep(1)  # Rate limiting
 
@@ -189,7 +190,7 @@ class LinkedInContactsSelectiveScraper:
                 'rol_finanzas': rol_finanzas,
                 'evaluation_text': result
             }
-
+            logger.info(f"🔍 Evaluación de perfil: {result}")
             return score, explicacion, detailed_info
 
         except Exception as e:
