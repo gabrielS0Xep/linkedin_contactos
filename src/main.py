@@ -133,7 +133,7 @@ def scrape():
     except Exception as e:
         #logger.error("📝 Marcando empresas procesadas como scrapeadas...")
         #bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper)
-        return jsonify({"error": "Proceso interrumpido por el usuario"}), 400
+        return jsonify({f"error": f"{e}"}), 400
 
     # Solo mostrar estadísticas finales si el proceso se completó
     print("\n📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")

@@ -126,12 +126,12 @@ class LinkedInContactsSelectiveScraper:
 
         evaluated_profiles = []
         high_score_profiles = []
+        genia_service = GenIaService(self.project_id, self.location)
 
         for i, profile_data in enumerate(all_profiles, 1):
             try:
                 print(f"  Evaluando {i}/{len(all_profiles)}: {profile_data['title'][:40]}...")
 
-                genia_service = GenIaService(self.project_id, self.location)
 
                 result = genia_service.evaluate_profile_relevance_detailed(
                     profile_data,
