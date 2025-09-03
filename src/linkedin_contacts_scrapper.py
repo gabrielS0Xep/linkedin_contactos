@@ -195,7 +195,9 @@ class LinkedInContactsSelectiveScraper:
 
             # Obtener resultados
             scraped_profiles = []
+            logger.info(f"🔍 Scraping completado: {run['defaultDatasetId']}")
             for item in self.apify_client.dataset(run["defaultDatasetId"]).iterate_items():
+                logger.info(f"🔍 Scraping: {item}")
                 scraped_profiles.append(item)
 
             self.test_metrics['profiles_scraped'] = len(scraped_profiles)
@@ -222,7 +224,7 @@ class LinkedInContactsSelectiveScraper:
             }
 
         except Exception as e:
-            print(f"❌ Error en scraping: {str(e)}")
+            print(f"❌ Error en scraping: {e}")
             return {'success': False, 'error': str(e)}
 
     def merge_evaluation_and_scraping(self, selected_profiles: List[Dict], scraped_data: List[Dict]) -> List[Dict]:
