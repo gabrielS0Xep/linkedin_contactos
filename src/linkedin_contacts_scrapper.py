@@ -170,10 +170,10 @@ class LinkedInContactsSelectiveScraper:
         self.test_metrics['profiles_evaluated'] = len(evaluated_profiles)
         self.test_metrics['high_score_profiles'] = len(high_score_profiles)
 
-        print(f"\n📊 RESULTADOS DE EVALUACIÓN:")
-        print(f"  Perfiles evaluados: {len(evaluated_profiles)}")
-        print(f"  Perfiles seleccionados: {len(high_score_profiles)}")
-        print(f"  Tasa de selección: {len(high_score_profiles)/len(evaluated_profiles)*100:.1f}%")
+        logger.info(f"\n📊 RESULTADOS DE EVALUACIÓN:")
+        logger.info(f"  Perfiles evaluados: {len(evaluated_profiles)}")
+        logger.info(f"  Perfiles seleccionados: {len(high_score_profiles)}")
+        logger.info(f"  Tasa de selección: {len(high_score_profiles)/len(evaluated_profiles)*100:.1f}%")
 
         return high_score_profiles, evaluated_profiles
 
@@ -182,10 +182,10 @@ class LinkedInContactsSelectiveScraper:
         Scrapea solo los perfiles seleccionados con dev_fusion
         """
         if not selected_profiles:
-            print("❌ No hay perfiles seleccionados para scrapear")
-            return {'success': False, 'error': 'No profiles to scrape'}
+            logger.error("❌ No hay perfiles seleccionados para scrapear")
+            raise Exception("No hay perfiles seleccionados para scrapear")
 
-        print(f"\n🚀 Scrapeando {len(selected_profiles)} perfiles seleccionados...")
+        logger.info(f"\n🚀 Scrapeando {len(selected_profiles)} perfiles seleccionados...")
 
         # Extraer URLs
         profile_urls = [profile['url'] for profile in selected_profiles]
@@ -283,7 +283,8 @@ class LinkedInContactsSelectiveScraper:
                 'scraped_data': scraped_data_match if scraped_data_match else None,
                 'scraping_success': scraped_data_match is not None
             }
-
+            logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
+            logger.info(f"✅ Perfiles combinados: {merged_profile}")
             merged_profiles.append(merged_profile)
 
         print(f"✅ Combinados {len(merged_profiles)} perfiles")
