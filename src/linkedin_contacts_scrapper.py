@@ -125,10 +125,10 @@ class LinkedInContactsSelectiveScraper:
         evaluated_profiles = []
         high_score_profiles = []
         genia_service = GenIaService(self.project_id, self.location)
-
-        for profile_data in enumerate(all_profiles, 1):
+        logger.info(f"Se inicializo el genia service")
+        for profile_data in all_profiles:
             try:
-            
+                logger.info(f"🔍 Evaluando perfil: {profile_data['url']}")
                 result = genia_service.evaluate_profile_relevance_detailed(
                     profile_data,
                     profile_data['company_searched']
@@ -364,7 +364,9 @@ class LinkedInContactsSelectiveScraper:
 
         # 2. Evaluar TODOS los perfiles y seleccionar los mejores
         logger.info(f"🔍 Perfiles encontrados: {len(all_profiles)}")
+        logger.info(f"🔍 Perfiles: {all_profiles}")
         logger.info("🔍 Evaluando perfiles...")
+
         selected_profiles, _ = self.select_best_profiles(all_profiles, min_score)
 
         if selected_profiles == []:
