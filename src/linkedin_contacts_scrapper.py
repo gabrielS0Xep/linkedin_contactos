@@ -266,9 +266,9 @@ class LinkedInContactsSelectiveScraper:
                         'query_used': evaluation['query_used']
                     },
                     'ai_evaluation': {
-                        'score': evaluation['ai_score'],
-                        'explanation': evaluation['ai_explanation'],
-                        'details': evaluation['ai_details']
+                        'score': evaluation['score'],
+                        'explanation': evaluation['explanation'],
+                        'details': evaluation['details']
                     },
                     # Datos scrapeados (si existen)
                     'scraped_data': scraped_data_match if scraped_data_match else None,
