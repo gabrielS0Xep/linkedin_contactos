@@ -17,7 +17,7 @@ class GenIaService:
             http_options=types.HttpOptions(api_version='v1')
         )
     
-    def evaluate_profile_relevance_detailed(self, profile_data: Dict, company_name: str) :
+    def evaluate_profile_relevance_detailed(self, profile_data: Dict) :
         """
         Evalúa un perfil usando IA con información más detallada
         """
@@ -25,16 +25,16 @@ class GenIaService:
         URL: {profile_data['url']}
         Título: {profile_data['title']}
         Snippet: {profile_data['snippet']}
-        Empresa buscada: {company_name}
+        Empresa buscada: {profile_data['biz_name']}
         """
 
         prompt = f"""
-        Evalúa este perfil de LinkedIn para decisiones financieras en la empresa "{company_name}":
+        Evalúa este perfil de LinkedIn para decisiones financieras en la empresa "{profile_data['biz_name']}":
 
         {profile_text}
 
         Evalúa:
-        1. ¿Trabaja ACTUALMENTE en "{company_name}"? (crítico)
+        1. ¿Trabaja ACTUALMENTE en "{profile_data['biz_name']}"? (crítico)
         2. ¿Su rol actual es de finanzas/contabilidad? (importante, considera roles con nombres en inglés como finance también parte de roles estratégicos)
         3. ¿Tiene poder de decisión financiera? (importante)
         4. ¿Nivel de seniority? (relevante)

@@ -98,7 +98,8 @@ class LinkedInContactsSelectiveScraper:
                                         'url': link,
                                         'title': title,
                                         'snippet': snippet,
-                                        'company_searched': company_name,
+                                        'biz_name': company_name,
+                                        'biz_identifier': self.company_biz_mapping.get(company_name, ''),
                                         'query_used': query
                                     })
                                     logger.info(f"  ✓ Perfil {len(linkedin_profiles)}: {title[:50]}...")
@@ -127,8 +128,7 @@ class LinkedInContactsSelectiveScraper:
             try:
                 logger.info(f"🔍 Evaluando perfil: {profile_data['url']}")
                 result = genia_service.evaluate_profile_relevance_detailed(
-                    profile_data,
-                    profile_data['company_searched']
+                    profile_data
                 )
 
                 structured_info = genia_service.extract_structured_info(result)
@@ -248,8 +248,6 @@ class LinkedInContactsSelectiveScraper:
                 # Buscar datos scrapeados correspondientes
                 scraped_data_match = None
                 for url, scraped in scraped_by_url.items():
-                    logger.info(f"🔍 URL: {url}")
-                    logger.info(f"🔍 Original URL: {original_url}")
                     if original_url in url or url in original_url:
                         scraped_data_match = scraped
                         break
@@ -286,10 +284,10 @@ class LinkedInContactsSelectiveScraper:
                 continue
 
             scraped_data = profile['scraped_data']
-            company_name = profile['original_search']['company_searched']
+            biz_name = profile['original_search']['biz_name']
 
             # Obtener biz_identifier del mapeo
-            biz_identifier = self.company_biz_mapping.get(company_name, '')
+            biz_identifier = self.company_biz_mapping.get(biz_name, '')
 
             # Extraer nombre del contacto
             contact_name = scraped_data.get('fullName', '') or scraped_data.get('name', '')
@@ -308,9 +306,9 @@ class LinkedInContactsSelectiveScraper:
             # Crear registro de contacto
             contact_record = {
                 'biz_identifier': biz_identifier,
-                'biz_name': company_name,
-                'contact_name': contact_name,
-                'contact_position': contact_position,
+                'biz_name': biz_name,
+                'contact_full_name': contact_name,
+                'contact_role': contact_position,
                 'linkedin_profile_url': profile['original_search']['url'],
                 'ai_score': profile['ai_evaluation']['score'],
                 'scraped_data': json.dumps(scraped_data, ensure_ascii=False, default=str),
