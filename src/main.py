@@ -125,7 +125,7 @@ def scrape():
     # Solo mostrar estadísticas finales si el proceso se completó
     logger.info("📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")
 
-    bigquery_service.marcar_empresas_contacts_como_scrapeadas(results, company_biz_mapping, scraper.test_metrics)
+    #bigquery_service.marcar_empresas_contacts_como_scrapeadas(results, company_biz_mapping, scraper.test_metrics)
 
     # Guardar contactos en BigQuery
     logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
