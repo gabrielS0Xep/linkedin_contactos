@@ -117,10 +117,10 @@ def scrape():
                 "status": "success",
                 "message": "No se obtuvieron resultados de acuerdo a los criterios de busqueda"}), 200
             """
-    except Exception as e:
+    except Exception as error:
 
-        logger.error("❌ Error en scraping: {e}")
-        return jsonify({f"error": f"{e}"}), 400
+        logger.error("❌ Error en scraping: {error}")
+        return jsonify({f"error": f"{error}"}), 400
 
     # Solo mostrar estadísticas finales si el proceso se completó
     logger.info("📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")
