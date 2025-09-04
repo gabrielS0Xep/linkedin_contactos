@@ -324,8 +324,7 @@ class LinkedInContactsSelectiveScraper:
         for profile in merged_profiles:
             if not profile['scraping_success']:
                 continue
-
-            scraped_data = profile['scraped_data']
+            
             biz_name = profile['original_search']['biz_name']
 
             # Obtener biz_identifier del mapeo
