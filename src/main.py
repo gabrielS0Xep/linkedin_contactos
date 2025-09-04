@@ -140,7 +140,9 @@ def scrape():
         "perfiles seleccionados": scraper.test_metrics['high_score_profiles'],
         "perfiles scrapeados": scraper.test_metrics['profiles_scraped'],
         "contactos finales obtenidos": len(scraper.contacts_results),
-        "costo total estimado": scraper.test_metrics['cost_estimate']
+        "costo total estimado": scraper.test_metrics['cost_estimate'],
+        "contactos": scraper.contacts_results
+
     }), 200
 
 
