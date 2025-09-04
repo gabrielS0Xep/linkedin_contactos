@@ -313,7 +313,7 @@ class LinkedInContactsSelectiveScraper:
             logger.error(f"❌ Error en merge_evaluation_and_scraping: {e}")
             return []
 
-    def process_contacts_for_bigquery(self, merged_profiles: List[Dict]):
+    def format_contacts_for_bigquery(self, merged_profiles: List[Dict]):
         """
         Procesa los perfiles para crear registros individuales de contactos
         """
@@ -335,11 +335,6 @@ class LinkedInContactsSelectiveScraper:
             contact_record = {
                 'biz_identifier': biz_identifier,
                 'biz_name': biz_name,
-                'biz_industry': profile['companyIndustry'],
-                'biz_web_url': profile['companyWebsite'],
-                'biz_web_linkedin_url': profile['companyLinkedin'],
-                'biz_founded_year': profile['companyFoundedIn'],
-                'biz_size': profile['companySize'],
                 'biz_industry': profile['companyIndustry'],
                 'biz_web_url': profile['companyWebsite'],
                 'biz_web_linkedin_url': profile['companyLinkedin'],
