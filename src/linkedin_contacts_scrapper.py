@@ -3,9 +3,9 @@ import json
 import time
 from typing import List, Dict, Tuple
 from apify_client import ApifyClient
-import re
 from datetime import datetime
 from config import Config
+from urllib.parse import urlparse
 
 from genia_service import GenIaService
 
@@ -226,39 +226,76 @@ class LinkedInContactsSelectiveScraper:
             logger.error(f"❌ Error en scraping: {e}")
             return {'success': False, 'error': str(e)}
 
+
+    def clean_scraped_data(self, scraped_data: Dict) -> Dict:
+        """
+        Limpia los datos scrapeados
+        """
+        clean_data = {}
+        clean_data['linkedinUrl'] = scraped_data.get('linkedinUrl', '').strip()
+        clean_data['fullName'] = scraped_data.get('fullName', '').strip()
+        clean_data['firstName'] = scraped_data.get('firstName', '').strip()
+        clean_data['lastName'] = scraped_data.get('lastName', '').strip()
+        clean_data['email'] = scraped_data.get('email', '').strip()
+        clean_data['mobileNumber'] = scraped_data.get('mobileNumber', '').strip()
+        clean_data['headline'] = scraped_data.get('headline', '').strip()
+        clean_data['jobTitle'] = scraped_data.get('jobTitle', '').strip()
+        clean_data['companyName'] = scraped_data.get('companyName', '').strip()
+        clean_data['companyIndustry'] = scraped_data.get('companyIndustry', '').strip()
+        clean_data['companyWebsite'] = scraped_data.get('companyWebsite', '').strip()
+        clean_data['companyLinkedin'] = scraped_data.get('companyLinkedin', '').strip()
+        clean_data['companyFoundedIn'] = scraped_data.get('companyFoundedIn', '').strip()
+        clean_data['companySize'] = scraped_data.get('companySize', '').strip()
+        clean_data['currentJobDuration'] = scraped_data.get('currentJobDuration', '').strip()
+        clean_data['currentJobDurationInYrs'] = scraped_data.get('currentJobDurationInYrs', '').strip()
+        clean_data['topSkillsByEndorsements'] = scraped_data.get('topSkillsByEndorsements', '').strip()
+        clean_data['addressCountryOnly'] = scraped_data.get('addressCountryOnly', '').strip()
+        clean_data['addressWithCountry'] = scraped_data.get('addressWithCountry', '').strip()
+
+        return clean_data
+
+
+    def standardize_url(url: str) -> str:
+        """
+        Standardizes a URL to ensure consistent keys for a dictionary.
+        
+        """
+        if not url:
+            return ''
+        # Normalize URL by parsing and re-forming it
+        parsed_url = urlparse(url)
+        return parsed_url.path
+
     def merge_evaluation_and_scraping(self, selected_profiles: List[Dict], scraped_data: List[Dict]) -> List[Dict]:
         """
         Combina los datos de evaluación con los datos scrapeados
         """
         logger.info("\n🔗 Combinando datos de evaluación con scraping...")
 
-        merged_profiles = []
 
         # Crear un diccionario para mapeo rápido por URL
-        scraped_by_url = {}
-        try:
-            for scraped in scraped_data:
-                profile_url = scraped.get('profileUrl') or scraped.get('url', '')
-                if profile_url:
-                    scraped_by_url[profile_url] = scraped
+        scraped_by_url_map = {
+            self.standardize_url(scraped.get('linkedinUrl') or scraped.get('url', '')): scraped
+        for scraped in scraped_data
+        }
 
+        merged_profiles = []
+
+        try:
             for evaluation in selected_profiles:
                 original_url = evaluation['url']
 
+                normalized_url = self.standardize_url(original_url)
+
                 # Buscar datos scrapeados correspondientes
-                scraped_data_match = None
-                for url, scraped in scraped_by_url.items():
-                    if original_url in url or url in original_url:
-                        scraped_data_match = scraped
-                        break
+                scraped_data_match = scraped_by_url_map.get(normalized_url)
 
                 logger.info(f"🔍 Scraped data match: {scraped_data_match}")
                 
                 merged_profile = {
                     # Datos de evaluación
                     **evaluation,
-                    # Datos scrapeados (si existen)
-                    'scraped_data': scraped_data_match if scraped_data_match else None,
+                    **scraped_data_match,
                     'scraping_success': scraped_data_match is not None
                 }
                 logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
@@ -267,6 +304,7 @@ class LinkedInContactsSelectiveScraper:
 
             print(f"✅ Combinados {len(merged_profiles)} perfiles")
             return merged_profiles
+
         except Exception as e:
             logger.error(f"❌ Error en merge_evaluation_and_scraping: {e}")
             return []
@@ -366,12 +404,17 @@ class LinkedInContactsSelectiveScraper:
             logger.error(f"❌ Error en scraping: {scraping_results['error']}")
             return []
         
-        logger.info(f"🔍 Scraping results: {scraping_results}")
+        logger.info(f"🔍 Scraping results: {scraping_results['scraped_profiles']}")
+
+        # 4. Limpia los datos scrapeados
+        cleaned_scraped_data = self.clean_scraped_data(scraping_results['scraped_profiles'])
+
+        logger.info(f"🔍 Cleaned scraped data: {cleaned_scraped_data}")
 
         # 4. Combinar datos de evaluación con scraping
         merged_profiles = self.merge_evaluation_and_scraping(
             selected_profiles,
-            scraping_results['scraped_profiles']
+            cleaned_scraped_data
         )
 
         # 5. NUEVO: Procesar contactos para BigQuery
