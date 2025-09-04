@@ -279,7 +279,7 @@ class LinkedInContactsSelectiveScraper:
 
         # Crear un diccionario para mapeo rápido por URL
         scraped_by_url_map = {
-            self.standardize_url(scraped.get('linkedinUrl') or scraped.get('url', '')): scraped
+            self.standardize_url(scraped.get('linkedinUrl')): scraped
         for scraped in scraped_data
         }
 
