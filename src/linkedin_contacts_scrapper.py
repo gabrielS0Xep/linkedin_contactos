@@ -248,10 +248,14 @@ class LinkedInContactsSelectiveScraper:
                 # Buscar datos scrapeados correspondientes
                 scraped_data_match = None
                 for url, scraped in scraped_by_url.items():
+                    logger.info(f"🔍 URL: {url}")
+                    logger.info(f"🔍 Original URL: {original_url}")
                     if original_url in url or url in original_url:
                         scraped_data_match = scraped
                         break
 
+                logger.info(f"🔍 Scraped data match: {scraped_data_match}")
+                
                 merged_profile = {
                     # Datos de evaluación
                     'original_search': {
