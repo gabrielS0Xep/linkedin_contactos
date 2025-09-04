@@ -267,9 +267,9 @@ class LinkedInContactsSelectiveScraper:
                     },
                     'ai_evaluation': {
                         'score': evaluation['score'],
-                        'explanation': evaluation['explanation'],
-                        'details': evaluation['details']
-                    },
+                        'empresa_actual': evaluation['empresa_actual'],
+                        'rol_finanzas': evaluation['rol_finanzas'],
+                        'explicacion': evaluation['explicacion']                 },
                     # Datos scrapeados (si existen)
                     'scraped_data': scraped_data_match if scraped_data_match else None,
                     'scraping_success': scraped_data_match is not None
