@@ -258,18 +258,7 @@ class LinkedInContactsSelectiveScraper:
                 
                 merged_profile = {
                     # Datos de evaluación
-                    'original_search': {
-                        'url': evaluation['url'],
-                        'title': evaluation['title'],
-                        'snippet': evaluation['snippet'],
-                        'company_searched': evaluation['company_searched'],
-                        'query_used': evaluation['query_used']
-                    },
-                    'ai_evaluation': {
-                        'score': evaluation['score'],
-                        'empresa_actual': evaluation['empresa_actual'],
-                        'rol_finanzas': evaluation['rol_finanzas'],
-                        'explicacion': evaluation['explicacion']                 },
+                    **evaluation,
                     # Datos scrapeados (si existen)
                     'scraped_data': scraped_data_match if scraped_data_match else None,
                     'scraping_success': scraped_data_match is not None
