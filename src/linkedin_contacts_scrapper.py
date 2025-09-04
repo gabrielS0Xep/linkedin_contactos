@@ -259,7 +259,7 @@ class LinkedInContactsSelectiveScraper:
         return clean_data_list
 
 
-    def standardize_url(url: str) -> str:
+    def standardize_url(self, url: str) -> str:
         """
         Standardizes a URL to ensure consistent keys for a dictionary.
         
