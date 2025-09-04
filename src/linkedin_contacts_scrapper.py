@@ -331,34 +331,40 @@ class LinkedInContactsSelectiveScraper:
             # Obtener biz_identifier del mapeo
             biz_identifier = self.company_biz_mapping.get(biz_name, '')
 
-            # Extraer nombre del contacto
-            contact_name = scraped_data.get('fullName', '') or scraped_data.get('name', '')
-            if not contact_name and 'firstName' in scraped_data and 'lastName' in scraped_data:
-                contact_name = f"{scraped_data.get('firstName', '')} {scraped_data.get('lastName', '')}".strip()
-
-            # Extraer posición actual
-            contact_position = ''
-            if 'positions' in scraped_data and scraped_data['positions']:
-                # Tomar la primera posición (más reciente)
-                first_position = scraped_data['positions'][0]
-                contact_position = first_position.get('title', '')
-            elif 'headline' in scraped_data:
-                contact_position = scraped_data.get('headline', '')
-
             # Crear registro de contacto
             contact_record = {
                 'biz_identifier': biz_identifier,
                 'biz_name': biz_name,
-                'contact_full_name': contact_name,
-                'contact_role': contact_position,
-                'linkedin_profile_url': profile['original_search']['url'],
-                'ai_score': profile['ai_evaluation']['score'],
-                'scraped_data': json.dumps(scraped_data, ensure_ascii=False, default=str),
-                'scraped_at': datetime.now().isoformat()
+                'biz_industry': profile['companyIndustry'],
+                'biz_web_url': profile['companyWebsite'],
+                'biz_web_linkedin_url': profile['companyLinkedin'],
+                'biz_founded_year': profile['companyFoundedIn'],
+                'biz_size': profile['companySize'],
+                'biz_industry': profile['companyIndustry'],
+                'biz_web_url': profile['companyWebsite'],
+                'biz_web_linkedin_url': profile['companyLinkedin'],
+                'biz_founded_year': profile['companyFoundedIn'],
+                'biz_size': profile['companySize'],
+                'full_name': profile['fullName'],
+                'role': profile['jobTitle'],
+                'ai_score_value': profile['ai_evaluation']['score'],
+                'web_linkedin_url': profile['linkedinUrl'],
+                'first_name': profile['firstName'],
+                'last_name': profile['lastName'],
+                'email': profile['email'],
+                'phone_number': profile['mobileNumber'],
+                'headline': profile['headline'],
+                'jobTitle': profile['jobTitle'],
+                'current_job_duration': profile['currentJobDuration'],
+                'current_job_duration_in_yrs': profile['currentJobDurationInYrs'],
+                'top_skills_by_endorsements': profile['topSkillsByEndorsements'],
+                'country': profile['addressCountryOnly'],
+                'city': profile['addressWithCountry'],
+                'src_scraped_dt': datetime.now().isoformat()
             }
 
             contacts_data.append(contact_record)
-            print(f"  ✅ Contacto procesado: {contact_name} - {contact_position}")
+            print(f"  ✅ Contacto procesado: {contact_record['full_name']} - {contact_record['role']}")
 
     #tendria que pushear
             
