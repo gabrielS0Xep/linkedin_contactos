@@ -125,11 +125,11 @@ def scrape():
     # Solo mostrar estadísticas finales si el proceso se completó
     logger.info("📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")
 
-    bigquery_service.marcar_empresas_contacts_como_scrapeadas(scraper.contacts_results, company_biz_mapping, scraper.test_metrics)
+    bigquery_service.marcar_empresas_contacts_como_scrapeadas(results, company_biz_mapping, scraper.test_metrics)
 
     # Guardar contactos en BigQuery
     logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
-    logger.info(f"Contactos: {scraper.contacts_results}")
+    logger.info(f"Contactos: {results}")
    # bigquery_service.save_contacts_to_bigquery(scraper.contacts_results)
 
     return jsonify(
@@ -141,7 +141,7 @@ def scrape():
         "perfiles scrapeados": scraper.test_metrics['profiles_scraped'],
         "contactos finales obtenidos": len(scraper.contacts_results),
         "costo total estimado": scraper.test_metrics['cost_estimate'],
-        "contactos": scraper.contacts_results
+        "contactos": results
 
     }), 200
 
