@@ -324,16 +324,10 @@ class LinkedInContactsSelectiveScraper:
         for profile in merged_profiles:
             if not profile['scraping_success']:
                 continue
-
-            biz_name = profile['original_search']['biz_name']
-
-            # Obtener biz_identifier del mapeo
-            biz_identifier = self.company_biz_mapping.get(biz_name, '')
-
             # Crear registro de contacto
             contact_record = {
-                'biz_identifier': biz_identifier,
-                'biz_name': biz_name,
+                'biz_identifier': profile['biz_identifier'],
+                'biz_name': profile['biz_name'],
                 'biz_industry': profile['companyIndustry'],
                 'biz_web_url': profile['companyWebsite'],
                 'biz_web_linkedin_url': profile['companyLinkedin'],
