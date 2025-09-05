@@ -46,8 +46,8 @@ def get_services():
         bigquery_service = BigQueryService(
             project = Config.GOOGLE_CLOUD_PROJECT_ID,
             dataset = Config.BIGQUERY_DATASET,
-            table_source_name = Config.CONTROL_TABLE_NAME,
-            table_destination_name = Config.LINKEDIN_INFO_TABLE_NAME
+            table_control_name = Config.CONTROL_TABLE_NAME,
+            table_info_name = Config.LINKEDIN_INFO_TABLE_NAME
         )
         secret_manager = SecretManager(project=Config.GOOGLE_CLOUD_PROJECT_ID)
         logger.info("✅ Servicios inicializados correctamente")
@@ -66,10 +66,6 @@ def health_check():
 
 @app.route("/scrape", methods=['POST'])
 def scrape():
-
-# ================================
-# FUNCIONES PARA CONTROL DE SCRAPPING - ADAPTADAS PARA CONTACTS
-# =============================
 
     # 🔑 API KEYS CONFIGURADAS
     bigquery_service,secret_manager_services = get_services()
