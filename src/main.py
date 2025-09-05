@@ -135,7 +135,7 @@ def scrape():
     # Guardar contactos en BigQuery
     logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
     logger.info(f"Contactos: {contacts_data}")
-   # bigquery_service.save_contacts_to_bigquery(scraper.contacts_results)
+    bigquery_service.save_contacts_to_bigquery(scraper.contacts_results)
 
     return jsonify(
         {"message": "Proceso completado exitosamente",
