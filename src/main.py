@@ -44,8 +44,10 @@ def get_services():
     try: 
         # Inicializar BigQuery service
         bigquery_service = BigQueryService(
-            project=Config.GOOGLE_CLOUD_PROJECT_ID,
-            dataset=Config.BIGQUERY_DATASET
+            project = Config.GOOGLE_CLOUD_PROJECT_ID,
+            dataset = Config.BIGQUERY_DATASET,
+            table_source_name = Config.CONTROL_TABLE_NAME,
+            table_destination_name = Config.LINKEDIN_INFO_TABLE_NAME
         )
         secret_manager = SecretManager(project=Config.GOOGLE_CLOUD_PROJECT_ID)
         logger.info("✅ Servicios inicializados correctamente")
@@ -127,7 +129,8 @@ def scrape():
 
     contacts_data = scraper.format_contacts_for_bigquery(results)
 
-    #bigquery_service.marcar_empresas_contacts_como_scrapeadas(contacts_data, company_biz_mapping, scraper.test_metrics)
+    
+    bigquery_service.marcar_empresas_contacts_como_scrapeadas(contacts_data, companies_data, scraper.test_metrics)
 
     # Guardar contactos en BigQuery
     logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")

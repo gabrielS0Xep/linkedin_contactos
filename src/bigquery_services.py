@@ -12,9 +12,11 @@ logger: Logger = logging.getLogger(__name__)
 
 class BigQueryService:
 
-    def __init__(self, project:str, dataset:str) -> None:
+    def __init__(self, project:str, dataset:str, table_control_name:str, table_info_name:str) -> None:
         self.__project_id = project
         self.__dataset = dataset
+        self.__table_control_name = table_control_name
+        self.__table_info_name = table_info_name
         self.__bq_client = bigquery.Client(project=self.__project_id) 
             
 
@@ -162,68 +164,82 @@ class BigQueryService:
                 'linkedin_found': None
             }
 
+
 # esta muy acoplado a scraper
-    def marcar_empresas_contacts_como_scrapeadas(self, contacts_results, company_biz_mapping, test_metrics):
+    def marcar_empresas_contacts_como_scrapeadas(self, contacts_results, companies_data, test_metrics):
         """Marca las empresas como scrapeadas en la tabla empresas_scrapeadas_linkedin_contacts"""
 
-        if not test_metrics['companies_processed']:
-            logger.warning("⚠️ No hay empresas para marcar como scrapeadas")
-            return
 
-        project_id = self.__project_id
-        dataset_id = self.__dataset
         table_id = Config.CONTROL_TABLE_NAME
-
+        location = Config.BIGQUERY_LOCATION
         # Preparar datos para insertar
         datos_insertar = []
-        timestamp_actual = datetime.now()
+       
+        biz_names = contacts_results.map(lambda x: x['biz_identifier'])
+        biz_names = set(biz_names)
 
-        for company_name in test_metrics['companies_processed']:
-            # Obtener biz_identifier del mapeo
-            biz_identifier = company_biz_mapping.get(company_name, '')
+        biz_names = companies_data.map(lambda x: x['biz_identifier'] in biz_names)
+        
+        datos_insertar = []
+        date_actual = date.today()
 
-            # Verificar si encontró contactos válidos
-            contactos_empresa = [c for c in contacts_results if c['biz_name'] == company_name]
-            encontro_linkedin = len(contactos_empresa) > 0
-
+        for company in companies_data:
             datos_insertar.append({
-                'biz_identifier': biz_identifier,
-                'biz_name': company_name,
-                'scrapping_d': timestamp_actual,
-                'contact_found_flg': encontro_linkedin
+                **company,
+                'scrapping_d': date_actual,
+                'contact_found_flg': company['biz_identifier'] in biz_names
             })
 
         # Convertir a DataFrame
-        df_empresas = pd.DataFrame(datos_insertar)
-
-        if not df_empresas.empty:
-            try:
-                # Insertar en BigQuery
-                destination_table = f'{project_id}.{dataset_id}.{table_id}'
-
-                df_empresas.to_gbq(
-                    destination_table=destination_table,
-                    project_id = project_id,
-                    if_exists='append'
-                )
-
-                #print(f"✅ Marcadas {len(df_empresas)} empresas como scrapeadas en BigQuery")
-                # se podria hacer con un filter asi no hacemos algo con complejidad n
-                # print(f"   📊 Con contactos encontrados: {len([d for d in datos_insertar if d['encontro_linkedin']])}")
-                #print(f"   📊 Sin contactos: {len([d for d in datos_insertar if not d['encontro_linkedin']])}")
-
-            except Exception as e:
-                logger.error(f"❌ Error marcando empresas como scrapeadas: {e}")
+        if datos_insertar != []:
+            df_datos_insertar = pd.DataFrame(datos_insertar)
+            return self._process_companies_chunk_with_upsert(df_datos_insertar, table_id, location)
         else:
             logger.warning("⚠️ No hay datos para marcar como scrapeadas")
+            return None
+
+
+    def actualizar_empresa_scrapeada(self, biz_identifier: str, company_name: str, 
+                                   linkedin_found: bool, table_name: str):
+        """Actualiza los datos de scraping de una empresa en la tabla de control"""
+        dataset_id = self.__dataset
+        table_id = table_name
+        
+        try: 
+            # Query para actualizar
+            query = f"""
+            UPDATE `{self.__project_id}.{dataset_id}.{table_id}`
+            SET scrapping_d = @scrapping_d, contact_found_flg = @contact_found_flg
+            WHERE biz_identifier = @biz_identifier AND biz_name = @company_name
+            """
+            
+            # Forzamos tipo bool seguro para evitar errores de tipo
+            linkedin_found_bool = linkedin_found if isinstance(linkedin_found, bool) else bool(linkedin_found)
+
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("biz_identifier", "STRING", biz_identifier),
+                    bigquery.ScalarQueryParameter("company_name", "STRING", company_name),
+                    bigquery.ScalarQueryParameter("scrapping_d", "TIMESTAMP", datetime.now()),
+                    bigquery.ScalarQueryParameter("contact_found_flg", "BOOL", linkedin_found_bool),
+                ]
+            )
+            
+            query_job = self.__bq_client.query(query, job_config=job_config)
+            query_job.result()  # Esperar a que termine
+            
+            logger.info(f"✅ Empresa {company_name} actualizada en tabla de control")
+            
+        except Exception as e:
+            logger.error(f"❌ Error actualizando empresa scrapeada: {e}")
+
 
     def save_contacts_to_bigquery(self,contacts_results):
         """Guardar contactos en la tabla linkedin_contacts_info"""
         if not contacts_results:
             logger.warning(f"⚠️ No hay contactos para guardar")
             return None
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        location = Config.BIGQUERY_LOCATION
        
         # Subir a BigQuery
         try:
@@ -252,27 +268,16 @@ class BigQueryService:
                     df_contacts['scraped_at'] = pd.to_datetime(df_contacts['scraped_at'])
 
                 table_id = Config.LINKEDIN_INFO_TABLE_NAME
-                destination_table = f'{self.__project_id}.{self.__dataset}.{table_id}'
+                
 
-                # Subir usando pandas-gbq
-                df_contacts.to_gbq(
-                    destination_table=destination_table,
-                    project_id=self.__project_id,
-                    if_exists='append',
-                    table_schema=None,
-                    location='US',
-                    progress_bar=False
-                )
-
-                logger.info(f"📊 Contactos subidos a BigQuery: {destination_table}")
-                logger.info(f"📈 Registros guardados: {len(df_contacts)}")
+                return self._process_contacts_chunk_with_upsert(df_contacts, table_id, location)
             else:
                 logger.warning("⚠️ No hay contactos para subir a BigQuery")
-
+                return None
         except Exception as e:
             logger.error(f"❌ Error subiendo contactos a BigQuery: {e}")
+            return None
 
-        #return filename
 
     def load_companies_from_bigquery_linkedin_contacts(self , limit: int = 1) -> List[Dict]:
         """Ejecuta query en BigQuery y extrae nombres de empresa y biz_identifier - CON CONTROL DE DUPLICADOS PARA CONTACTS"""
@@ -307,3 +312,243 @@ class BigQueryService:
             logger.error(f"❌ Error ejecutando query BigQuery: {e}")
             logger.error("💡 Verifica que las tablas existan y tengas permisos")
             return []
+
+    def _process_contacts_chunk_with_upsert(self, df_chunk,  table_name, location):
+        """
+        Procesa un chunk de datos implementando lógica de upsert.
+        Retorna (insertados, actualizados)
+        #Location : US
+
+        """
+        destination_table = f'{self.__project_id}.{self.__dataset}.{table_name}'
+        success = False
+        inserted = 0
+        updated = 0
+        
+        try:
+            # Crear tabla temporal para el merge
+            temp_table_name = f"temp_{table_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            temp_destination = f'{self.__project_id}.{self.__dataset}.{temp_table_name}'
+            
+            # Insertar datos en tabla temporal
+            df_chunk.to_gbq(
+                destination_table=temp_destination,
+                project_id=self.__project_id,
+                if_exists='replace',
+                table_schema=None,
+                location=location,
+                progress_bar=False
+            )
+            
+            # Query de MERGE para upsert
+            merge_query = f"""
+                MERGE `{destination_table}` AS target
+                USING `{temp_destination}` AS source
+                ON target.biz_identifier = source.biz_identifier
+                AND target.web_linkedin_url = source.web_linkedin_url
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        biz_name = source.biz_name,
+                        biz_industry = source.biz_industry,
+                        biz_web_url = source.biz_web_url,
+                        biz_web_linkedin_url = source.biz_web_linkedin_url,
+                        biz_founded_year = source.biz_founded_year,
+                        biz_size = source.biz_size,
+                        full_name = source.full_name,
+                        role = source.role,
+                        ai_score_value = source.ai_score_value,
+                        first_name = source.first_name,
+                        last_name = source.last_name,
+                        email = source.email,
+                        phone_number = source.phone_number,
+                        headline = source.headline,
+                        current_job_duration = source.current_job_duration,
+                        cntry_value = source.cntry_value,
+                        cntry_city_value = source.cntry_city_value,
+                        src_scraped_dt = source.src_scraped_dt
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        biz_identifier,
+                        biz_name,
+                        biz_industry,
+                        biz_web_url,
+                        biz_web_linkedin_url,
+                        biz_founded_year,
+                        biz_size,
+                        full_name,
+                        role,
+                        ai_score_value,
+                        web_linkedin_url,
+                        first_name,
+                        last_name,
+                        email,
+                        phone_number,
+                        headline,
+                        current_job_duration,
+                        cntry_value,
+                        cntry_city_value,
+                        src_scraped_dt
+                    )
+                    VALUES (
+                        source.biz_identifier,
+                        source.biz_name,
+                        source.biz_industry,
+                        source.biz_web_url,
+                        source.biz_web_linkedin_url,
+                        source.biz_founded_year,
+                        source.biz_size,
+                        source.full_name,
+                        source.role,
+                        source.ai_score_value,
+                        source.web_linkedin_url,
+                        source.first_name,
+                        source.last_name,
+                        source.email,
+                        source.phone_number,
+                        source.headline,
+                        source.current_job_duration,
+                        source.cntry_value,
+                        source.cntry_city_value,
+                        source.src_scraped_dt
+                    );
+            """            
+            # Ejecutar merge
+            query_job = self.__bq_client.query(merge_query)
+            result = query_job.result()
+            # Obtener estadísticas del merge
+            if hasattr(result, 'num_dml_affected_rows'):
+                # Para versiones más recientes de BigQuery
+                updated = result.num_dml_affected_rows
+            else:
+                # Fallback: contar registros en tabla temporal
+                count_query = f"SELECT COUNT(*) as count FROM `{temp_destination}`"
+                count_job = self.__bq_client.query(count_query)
+                count_result = list(count_job.result())
+                total_records = count_result[0].count if count_result else 0
+                
+                # Asumir que la mayoría son actualizaciones si la tabla ya tiene datos
+                updated = total_records // 2  # Estimación conservadora
+                inserted = total_records - updated
+            
+            # Limpiar tabla temporal
+            try:
+                self.__bq_client.delete_table(temp_destination, not_found_ok=True)
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo eliminar tabla temporal {temp_destination}: {e}")
+            
+            return {"success": success, "inserted": inserted, "updated": updated}
+            
+        except Exception as e:
+            logger.error(f"❌ Error en upsert: {e}")
+            # Fallback al método original de append
+            logger.info("🔄 Fallback a método append...")
+            
+            try:
+                df_chunk.to_gbq(
+                    destination_table=destination_table,
+                    project_id=self.__project_id,
+                    if_exists='append',
+                    table_schema=None,
+                    location=location,
+                    progress_bar=False
+                )
+                return len(df_chunk), 0
+            except Exception as e2:
+                logger.error(f"❌ Error en fallback: {e2}")
+                raise e2
+
+    def _process_companies_chunk_with_upsert(self, df_chunk, table_name, location):
+        """
+        Procesa un chunk de datos implementando lógica de upsert.
+        Retorna (insertados, actualizados)
+        #Location : US
+
+        """
+        destination_table = f'{self.__project_id}.{self.__dataset}.{table_name}'
+        success = False
+        inserted = 0
+        updated = 0
+        
+        try:
+            # Crear tabla temporal para el merge
+            temp_table_name = f"temp_{table_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            temp_destination = f'{self.__project_id}.{self.__dataset}.{temp_table_name}'
+            
+            # Insertar datos en tabla temporal
+            df_chunk.to_gbq(
+                destination_table=temp_destination,
+                project_id=self.__project_id,
+                if_exists='replace',
+                table_schema=None,
+                location=location,
+                progress_bar=False
+            )
+            
+            # Query de MERGE para upsert
+            merge_query = f"""
+                MERGE `{destination_table}` AS target
+                USING `{temp_destination}` AS source
+                ON target.biz_identifier = source.biz_identifier
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        scrapping_d = source.scrapping_d,
+                        contact_found_flg = source.contact_found_flg
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        biz_identifier,
+                        biz_name,
+                        scrapping_d,
+                        contact_found_flg
+                    )
+                    VALUES (
+                        source.biz_identifier,
+                        source.biz_name,
+                        source.scrapping_d,
+                        source.contact_found_flg
+                    );
+            """            
+            # Ejecutar merge
+            query_job = self.__bq_client.query(merge_query)
+            result = query_job.result()
+            # Obtener estadísticas del merge
+            if hasattr(result, 'num_dml_affected_rows'):
+                # Para versiones más recientes de BigQuery
+                updated = result.num_dml_affected_rows
+            else:
+                # Fallback: contar registros en tabla temporal
+                count_query = f"SELECT COUNT(*) as count FROM `{temp_destination}`"
+                count_job = self.__bq_client.query(count_query)
+                count_result = list(count_job.result())
+                total_records = count_result[0].count if count_result else 0
+                
+                # Asumir que la mayoría son actualizaciones si la tabla ya tiene datos
+                updated = total_records // 2  # Estimación conservadora
+                inserted = total_records - updated
+            
+            success = True
+            # Limpiar tabla temporal
+            try:
+                self.__bq_client.delete_table(temp_destination, not_found_ok=True)
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo eliminar tabla temporal {temp_destination}: {e}")
+            
+            return {"success": success, "inserted": inserted, "updated": updated}
+            
+        except Exception as e:
+            logger.error(f"❌ Error en upsert: {e}")
+            # Fallback al método original de append
+            logger.info("🔄 Fallback a método append...")
+            
+            try:
+                df_chunk.to_gbq(
+                    destination_table=destination_table,
+                    project_id=self.__project_id,
+                    if_exists='append',
+                    table_schema=None,
+                    location=location,
+                    progress_bar=False
+                )
+                return len(df_chunk), 0
+            except Exception as e2:
+                logger.error(f"❌ Error en fallback: {e2}")
+                raise e2

@@ -324,7 +324,7 @@ class LinkedInContactsSelectiveScraper:
         for profile in merged_profiles:
             if not profile['scraping_success']:
                 continue
-            
+
             biz_name = profile['original_search']['biz_name']
 
             # Obtener biz_identifier del mapeo
@@ -348,12 +348,9 @@ class LinkedInContactsSelectiveScraper:
                 'email': profile['email'],
                 'phone_number': profile['mobileNumber'],
                 'headline': profile['headline'],
-                'jobTitle': profile['jobTitle'],
                 'current_job_duration': profile['currentJobDuration'],
-                'current_job_duration_in_yrs': profile['currentJobDurationInYrs'],
-                'top_skills_by_endorsements': profile['topSkillsByEndorsements'],
-                'country': profile['addressCountryOnly'],
-                'city': profile['addressWithCountry'],
+                'cntry_value': profile['addressCountryOnly'],
+                'cntry_city_value': profile['addressWithCountry'],
                 'src_scraped_dt': datetime.now().isoformat()
             }
 
@@ -420,7 +417,7 @@ class LinkedInContactsSelectiveScraper:
             selected_profiles,
             cleaned_scraped_data
         )
-
+        
         # 5. NUEVO: Procesar contactos para BigQuery
         #self.process_contacts_for_bigquery(merged_profiles)
 

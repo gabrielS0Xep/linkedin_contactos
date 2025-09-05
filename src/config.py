@@ -13,7 +13,7 @@ load_dotenv()
 class Config:
     GOOGLE_CLOUD_PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT_ID','qa-cdp-mx')
     LOCATION = os.getenv('LOCATION', 'us-central1')
-    
+    BIGQUERY_LOCATION = os.getenv('BIGQUERY_LOCATION', 'US')
     # Configuración BigQuery
     BIGQUERY_DATASET = os.getenv('BIGQUERY_DATASET', 'raw_in_scrapper')
     CONTROL_TABLE_NAME = os.getenv('CONTROL_TABLE_NAME', 'linkedin_scraped_contacts')
