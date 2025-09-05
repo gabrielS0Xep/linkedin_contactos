@@ -353,8 +353,9 @@ class LinkedInContactsSelectiveScraper:
 
     #tendria que pushear
             
-        self.contacts_results = contacts_data
         print(f"\n📈 Total contactos procesados: {len(contacts_data)}")
+        return contacts_data
+
 
     def run_selective_test(self, companies: List[str], max_per_company: int = 20, min_score: int = 7):
         """
@@ -416,3 +417,14 @@ class LinkedInContactsSelectiveScraper:
         #self.process_contacts_for_bigquery(merged_profiles)
 
         return merged_profiles
+
+    def check_exists_in_bigquery(self, companies: List[Dict]):
+        """
+        Verifica si las empresas ya existen en BigQuery
+        """
+        for company in companies:
+            if self.bigquery_service.check_exists_in_bigquery(company['biz_identifier']):
+                return True
+
+
+        return False
