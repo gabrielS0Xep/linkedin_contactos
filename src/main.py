@@ -127,12 +127,16 @@ def scrape():
     contacts_data = scraper.format_contacts_for_bigquery(results)
 
     logger.info(f"Contacts data: {contacts_data}")
+    logger.info(f"Companies data: {companies_data}")
+    
+    logger.info("Marcando empresas como scrapeadas")
     bigquery_service.marcar_empresas_contacts_como_scrapeadas(contacts_data, companies_data, scraper.test_metrics)
 
     # Guardar contactos en BigQuery
     logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")
+
     logger.info(f"Contactos: {contacts_data}")
-    bigquery_service.save_contacts_to_bigquery(scraper.contacts_results)
+    bigquery_service.save_contacts_to_bigquery(contacts_data)
 
     return jsonify(
         {"message": "Proceso completado exitosamente",

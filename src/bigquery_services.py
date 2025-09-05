@@ -65,7 +65,7 @@ class BigQueryService:
         except Exception as e:
             logger.error(f"❌ Error creando tabla: {e}")
 
-    def crear_tabla_linkedin_contacts_info():
+    def crear_tabla_linkedin_contacts_info(self):
         """Crea la tabla linkedin_contacts_info si no existe"""
 
         client = bigquery.Client(project="xepelin-lab-customer-mx")
@@ -166,7 +166,7 @@ class BigQueryService:
 
 
 # esta muy acoplado a scraper
-    def marcar_empresas_contacts_como_scrapeadas(self, contacts_results, companies_data, test_metrics):
+    def marcar_empresas_contacts_como_scrapeadas(self, contacts_results: List[Dict], companies_data: List[Dict], test_metrics: dict):
         """Marca las empresas como scrapeadas en la tabla empresas_scrapeadas_linkedin_contacts"""
 
 
@@ -174,8 +174,8 @@ class BigQueryService:
         location = Config.BIGQUERY_LOCATION
         # Preparar datos para insertar
         datos_insertar = []
-        contacts_results = list(contacts_results)
-        
+        logger.info(f"Contacts results en empresas scrapeadas: {contacts_results}")
+
         biz_names = map(lambda x: x['biz_identifier'], contacts_results)
         biz_names = set(biz_names)
 
