@@ -174,11 +174,12 @@ class BigQueryService:
         location = Config.BIGQUERY_LOCATION
         # Preparar datos para insertar
         datos_insertar = []
-       
-        biz_names = contacts_results.map(lambda x: x['biz_identifier'])
+        contacts_results = list(contacts_results)
+        
+        biz_names = map(contacts_results,lambda x: x['biz_identifier'])
         biz_names = set(biz_names)
 
-        biz_names = companies_data.map(lambda x: x['biz_identifier'] in biz_names)
+        biz_names = map(companies_data,lambda x: x['biz_identifier'] in biz_names)
         
         datos_insertar = []
         date_actual = date.today()
