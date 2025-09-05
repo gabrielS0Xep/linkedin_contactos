@@ -176,10 +176,10 @@ class BigQueryService:
         datos_insertar = []
         contacts_results = list(contacts_results)
         
-        biz_names = map(contacts_results,lambda x: x['biz_identifier'])
+        biz_names = map(lambda x: x['biz_identifier'], contacts_results)
         biz_names = set(biz_names)
 
-        biz_names = map(companies_data,lambda x: x['biz_identifier'] in biz_names)
+        biz_names = map(lambda x: x['biz_identifier'] in biz_names , companies_data)
         
         datos_insertar = []
         date_actual = date.today()
