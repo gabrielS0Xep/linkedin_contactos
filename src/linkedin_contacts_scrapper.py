@@ -335,7 +335,7 @@ class LinkedInContactsSelectiveScraper:
                 'biz_size': profile['companySize'],
                 'full_name': profile['fullName'],
                 'role': profile['jobTitle'],
-                'ai_score_value': profile['ai_evaluation']['score'],
+                'ai_score_value': profile['score'],
                 'web_linkedin_url': profile['linkedinUrl'],
                 'first_name': profile['firstName'],
                 'last_name': profile['lastName'],
