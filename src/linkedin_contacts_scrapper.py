@@ -287,30 +287,34 @@ class LinkedInContactsSelectiveScraper:
 
         try:
             for evaluation in selected_profiles:
-                original_url = evaluation['url']
+                try:
+                    original_url = evaluation['url']
 
-                normalized_url = self.standardize_url(original_url)
+                    normalized_url = self.standardize_url(original_url)
 
-                # Buscar datos scrapeados correspondientes
-                scraped_data_match = scraped_by_url_map.get(normalized_url)
+                    # Buscar datos scrapeados correspondientes
+                    scraped_data_match = scraped_by_url_map.get(normalized_url)
 
-                logger.info(f"🔍 Scraped data match: {scraped_data_match}")
-                
-                merged_profile = {
-                    # Datos de evaluación
-                    **evaluation,
-                    **scraped_data_match,
-                    'scraping_success': scraped_data_match is not None
-                }
-                logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
-                logger.info(f"✅ Perfiles combinados: {merged_profile}")
-                merged_profiles.append(merged_profile)
+                    logger.info(f"🔍 Scraped data match: {scraped_data_match}")
+                    
+                    merged_profile = {
+                        # Datos de evaluación
+                        **evaluation,
+                        **scraped_data_match,
+                        'scraping_success': scraped_data_match is not None
+                    }
+                    logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
+                    logger.info(f"✅ Perfiles combinados: {merged_profile}")
+                    merged_profiles.append(merged_profile)
+                except Exception as e:
+                    logger.error(f"❌ Error formateando los datos del perfil: {original_url}  msg:{e}")
+                    continue
 
             print(f"✅ Combinados {len(merged_profiles)} perfiles")
             return merged_profiles
 
         except Exception as e:
-            logger.error(f"❌ Error en merge_evaluation_and_scraping: {e}")
+            logger.error(f"❌ Hubo un error fatal en merge_evaluation_and_scraping: {e}")
             return []
 
     def format_contacts_for_bigquery(self, merged_profiles: List[Dict]):

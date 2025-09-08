@@ -66,6 +66,54 @@ def health_check():
 
 @app.route("/scrape", methods=['POST'])
 def scrape():
+    """
+    Endpoint para hacer scraping de contactos de LinkedIn
+    
+    Body JSON (opcional):
+    {
+        "batch_size": 10,
+        "min_score": 7,
+        "max_per_company": 4
+    }
+    
+    Retorna:
+    {
+    "contactos": [
+        {
+            "ai_score_value": 10,
+            "biz_founded_year": "2018",
+            "biz_identifier": "CDE1706071C3",
+            "biz_industry": "Management Consulting",
+            "biz_name": "CONSULTORÍA EN DESEMPEÑO ENERGÉTICO S.C",
+            "biz_size": "11-50",
+            "biz_web_linkedin_url": "linkedin.com/company/csrconsultingmx",
+            "biz_web_url": "csrconsulting.mx",
+            "cntry_city_value": "Monterrey, Nuevo León, Mexico",
+            "cntry_value": "Mexico",
+            "current_job_duration": "7 yrs 4 mos",
+            "email": "None",
+            "first_name": "PhD Carmelo",
+            "full_name": "PhD Carmelo Santillán Ramos",
+            "headline": "None",
+            "last_name": "Santillán Ramos",
+            "phone_number": "None",
+            "role": "CEO",
+            "src_scraped_dt": "Mon, 08 Sep 2025 14:31:50 GMT",
+            "web_linkedin_url": "https://mx.linkedin.com/in/carmelosantillan/en"
+        }
+    ],
+    "contactos finales obtenidos": 0,
+    "costo total estimado": 0.01,
+    "empresas procesadas": 2,
+    "message": "Proceso completado exitosamente",
+    "perfiles evaluados": 1,
+    "perfiles scrapeados": 1,
+    "perfiles seleccionados": 1,
+    "total perfiles encontrados": 1
+}
+    
+    
+    """
     # 🔑 API KEYS CONFIGURADAS
     bigquery_service,secret_manager_services = get_services()
     SERPER_API_KEY  = secret_manager_services.get_secret('api_key_serper_linkedin_contactos')
