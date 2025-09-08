@@ -345,7 +345,7 @@ class LinkedInContactsSelectiveScraper:
                 'current_job_duration': profile['currentJobDuration'],
                 'cntry_value': profile['addressCountryOnly'],
                 'cntry_city_value': profile['addressWithCountry'],
-                'src_scraped_dt': datetime.now()
+                'src_scraped_dt': datetime.timestamp(datetime.now())
             }
 
             contacts_data.append(contact_record)
