@@ -188,7 +188,7 @@ def validate_request():
     """
     try:
         # Obtener servicios
-        _, bigquery_service, _ = get_services()
+        bigquery_service, _ = get_services()
         
         # Verificar si hay datos en el request
         if not request.is_json:
