@@ -74,14 +74,26 @@ class BigQueryService:
 
         # Schema simplificado para contactos
         schema = [
-            bigquery.SchemaField("biz_identifier", "STRING", mode="NULLABLE"),
-            bigquery.SchemaField("biz_name", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("full_name", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("role", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("web_linkedin_url", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("ai_score", "INTEGER", mode="REQUIRED"),
-            bigquery.SchemaField("src_scraped_data", "JSON", mode="NULLABLE"),  # JSON como STRING
-            bigquery.SchemaField("src_scraped_dt", "TIMESTAMP", mode="REQUIRED")
+        bigquery.SchemaField("biz_identifier", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_industry", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_web_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_web_linkedin_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_founded_year", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("biz_size", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("full_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("role", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("ai_score_value", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("web_linkedin_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("first_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("last_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("email", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("phone_number", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("headline", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("current_job_duration", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("cntry_value", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("cntry_city_value", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("src_scraped_dt", "TIMESTAMP", mode="NULLABLE")
         ]
 
         # Crear referencia a la tabla
@@ -319,6 +331,28 @@ class BigQueryService:
         #Location : US
 
         """
+        schema = [
+        bigquery.SchemaField("biz_identifier", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_industry", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_web_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_web_linkedin_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("biz_founded_year", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("biz_size", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("full_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("role", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("ai_score_value", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("web_linkedin_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("first_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("last_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("email", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("phone_number", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("headline", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("current_job_duration", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("cntry_value", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("cntry_city_value", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("src_scraped_dt", "TIMESTAMP", mode="NULLABLE")
+        ]
         destination_table = f'{self.__project_id}.{self.__dataset}.{table_name}'
         success = False
         inserted = 0
@@ -334,7 +368,7 @@ class BigQueryService:
                 destination_table=temp_destination,
                 project_id=self.__project_id,
                 if_exists='replace',
-                table_schema=None,
+                table_schema=schema,
                 location=location,
                 progress_bar=False
             )
