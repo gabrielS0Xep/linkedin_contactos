@@ -553,3 +553,85 @@ class BigQueryService:
             except Exception as e2:
                 logger.error(f"❌ Error en fallback: {e2}")
                 raise e2
+
+                
+    def get_pending_companies(self, table_name: str, limit: int = 100) -> List[Dict]:
+        """
+        Obtiene empresas pendientes de scraping (scrapping_date y linkedin_found son NULL)
+        
+        Args:
+            table_name: Nombre de la tabla de control
+            limit: Límite de empresas a retornar
+            
+        Returns:
+            Lista de diccionarios con las empresas pendientes
+        """
+        dataset_id = self.__dataset
+        table_id = table_name
+        
+        try:
+            # Query para obtener empresas pendientes
+            query = f"""
+            SELECT biz_identifier, biz_name
+            FROM `{self.__project_id}.{dataset_id}.{table_id}`
+            WHERE scrapping_d IS NULL OR contact_found_flg IS NULL
+            ORDER BY biz_name
+            LIMIT @limit
+            """
+            
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("limit", "INT64", limit),
+                ]
+            )
+            
+            query_job = self.__bq_client.query(query, job_config=job_config)
+            results = list(query_job.result())
+            
+            # Convertir resultados a lista de diccionarios
+            pending_companies = []
+            for row in results:
+                pending_companies.append({
+                    'rfc': row.biz_identifier,
+                    'company_name': row.biz_name
+                })
+            
+            logger.info(f"✅ Encontradas {len(pending_companies)} empresas pendientes de scraping")
+            return pending_companies
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo empresas pendientes: {e}")
+            return []
+
+    def get_pending_companies_count(self, table_name: str) -> int:
+        """
+        Obtiene el conteo de empresas pendientes de scraping
+        
+        Args:
+            table_name: Nombre de la tabla de control
+            
+        Returns:
+            Número de empresas pendientes
+        """
+        dataset_id = self.__dataset
+        table_id = table_name
+        
+        try:
+            # Query para contar empresas pendientes
+            query = f"""
+            SELECT COUNT(*) as pending_count
+            FROM `{self.__project_id}.{dataset_id}.{table_id}`
+            WHERE scrapping_d IS NULL OR contact_found_flg IS NULL
+            """
+            
+            query_job = self.__bq_client.query(query)
+            results = list(query_job.result())
+            
+            if results:
+                return results[0].pending_count
+            else:
+                return 0
+                
+        except Exception as e:
+            logger.error(f"❌ Error contando empresas pendientes: {e}")
+            return 0
