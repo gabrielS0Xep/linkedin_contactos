@@ -433,6 +433,7 @@ class BigQueryService:
             
             # Limpiar tabla temporal
             try:
+                logger.info(f"🔄 Eliminando tabla temporal {temp_destination}")
                 self.__bq_client.delete_table(temp_destination, not_found_ok=True)
             except Exception as e:
                 logger.warning(f"⚠️ No se pudo eliminar tabla temporal {temp_destination}: {e}")
@@ -529,6 +530,7 @@ class BigQueryService:
             success = True
             # Limpiar tabla temporal
             try:
+                logger.info(f"🔄 Eliminando tabla temporal {temp_destination}")
                 self.__bq_client.delete_table(temp_destination, not_found_ok=True)
             except Exception as e:
                 logger.warning(f"⚠️ No se pudo eliminar tabla temporal {temp_destination}: {e}")
@@ -554,7 +556,7 @@ class BigQueryService:
                 logger.error(f"❌ Error en fallback: {e2}")
                 raise e2
 
-                
+
     def get_pending_companies(self, table_name: str, limit: int = 100) -> List[Dict]:
         """
         Obtiene empresas pendientes de scraping (scrapping_date y linkedin_found son NULL)
