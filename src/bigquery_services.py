@@ -276,8 +276,7 @@ class BigQueryService:
                     df_contacts['ai_score'] = pd.to_numeric(df_contacts['ai_score'], errors='coerce').fillna(0).astype('Int64')
 
                 if 'src_scraped_dt' in df_contacts.columns:
-
-                   df_contacts['src_scraped_dt'] = pd.to_timestamp(df_contacts['src_scraped_dt']).dt.tz_localize('UTC')
+                    df_contacts['src_scraped_dt'] = pd.to_datetime(df_contacts['src_scraped_dt']).dt.tz_localize('UTC')
 #
                 table_id = Config.LINKEDIN_INFO_TABLE_NAME
                 
