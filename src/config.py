@@ -41,7 +41,7 @@ class Config:
     MAX_WORKERS = int(os.getenv('MAX_WORKERS', '5'))  # Reducido para API
     
     # Configuración de modelos Gemini
-    GEMINI_MODEL_NAME = "gemini-2.5-flash-lite "
+    GEMINI_MODEL_NAME = "gemini-2.5-flash-lite"
     
     # Configuración de generación Gemini
     GEMINI_CONFIG = {
