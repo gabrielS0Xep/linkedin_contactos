@@ -181,7 +181,6 @@ class BigQueryService:
     def marcar_empresas_contacts_como_scrapeadas(self, contacts_results: List[Dict], companies_data: List[Dict]):
         """Marca las empresas como scrapeadas en la tabla empresas_scrapeadas_linkedin_contacts"""
 
-
         table_id = Config.CONTROL_TABLE_NAME
         location = Config.BIGQUERY_LOCATION
         # Preparar datos para insertar
