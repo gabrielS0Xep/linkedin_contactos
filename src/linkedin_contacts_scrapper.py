@@ -288,6 +288,7 @@ class LinkedInContactsSelectiveScraper:
         try:
             for evaluation in selected_profiles:
                 try:
+                    
                     original_url = evaluation['url']
 
                     normalized_url = self.standardize_url(original_url)
@@ -306,6 +307,7 @@ class LinkedInContactsSelectiveScraper:
                     logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
                     logger.info(f"✅ Perfiles combinados: {merged_profile}")
                     merged_profiles.append(merged_profile)
+
                 except Exception as e:
                     logger.error(f"❌ Error formateando los datos del perfil: {original_url}  msg:{e}")
                     continue

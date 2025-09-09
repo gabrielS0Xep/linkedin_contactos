@@ -179,7 +179,7 @@ def scrape():
     logger.info(f"Companies data: {companies_data}")
     
     logger.info("Marcando empresas como scrapeadas")
-    bigquery_service.marcar_empresas_contacts_como_scrapeadas(contacts_data, companies_data, scraper.test_metrics)
+    bigquery_service.marcar_empresas_contacts_como_scrapeadas(contacts_data, companies_data)
 
     # Guardar contactos en BigQuery
     logger.info("\n💾 GUARDANDO CONTACTOS EN BIGQUERY...")

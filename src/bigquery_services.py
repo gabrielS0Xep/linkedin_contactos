@@ -178,7 +178,7 @@ class BigQueryService:
 
 
 # esta muy acoplado a scraper
-    def marcar_empresas_contacts_como_scrapeadas(self, contacts_results: List[Dict], companies_data: List[Dict], test_metrics: dict):
+    def marcar_empresas_contacts_como_scrapeadas(self, contacts_results: List[Dict], companies_data: List[Dict]):
         """Marca las empresas como scrapeadas en la tabla empresas_scrapeadas_linkedin_contacts"""
 
 
@@ -190,8 +190,6 @@ class BigQueryService:
 
         biz_names = map(lambda x: x['biz_identifier'], contacts_results)
         biz_names = set(biz_names)
-
-        biz_names = map(lambda x: x['biz_identifier'] in biz_names , companies_data)
         
         datos_insertar = []
         date_actual = date.today()
@@ -206,45 +204,17 @@ class BigQueryService:
         # Convertir a DataFrame
         if datos_insertar != []:
             df_datos_insertar = pd.DataFrame(datos_insertar)
-            return self._process_companies_chunk_with_upsert(df_datos_insertar, table_id, location)
+            df_datos_insertar.to_gbq(
+                    destination_table=f'{self.__project_id}.{self.__dataset}.{table_id}',
+                    project_id=self.__project_id,
+                    if_exists='append',
+                    table_schema=None,
+                    location=location,
+                )
+            return len(df_datos_insertar), 0
         else:
             logger.warning("⚠️ No hay datos para marcar como scrapeadas")
             return None
-
-
-    def actualizar_empresa_scrapeada(self, biz_identifier: str, company_name: str, 
-                                   linkedin_found: bool, table_name: str):
-        """Actualiza los datos de scraping de una empresa en la tabla de control"""
-        dataset_id = self.__dataset
-        table_id = table_name
-        
-        try: 
-            # Query para actualizar
-            query = f"""
-            UPDATE `{self.__project_id}.{dataset_id}.{table_id}`
-            SET scrapping_d = @scrapping_d, contact_found_flg = @contact_found_flg
-            WHERE biz_identifier = @biz_identifier AND biz_name = @company_name
-            """
-            
-            # Forzamos tipo bool seguro para evitar errores de tipo
-            linkedin_found_bool = linkedin_found if isinstance(linkedin_found, bool) else bool(linkedin_found)
-
-            job_config = bigquery.QueryJobConfig(
-                query_parameters=[
-                    bigquery.ScalarQueryParameter("biz_identifier", "STRING", biz_identifier),
-                    bigquery.ScalarQueryParameter("company_name", "STRING", company_name),
-                    bigquery.ScalarQueryParameter("scrapping_d", "TIMESTAMP", datetime.now()),
-                    bigquery.ScalarQueryParameter("contact_found_flg", "BOOL", linkedin_found_bool),
-                ]
-            )
-            
-            query_job = self.__bq_client.query(query, job_config=job_config)
-            query_job.result()  # Esperar a que termine
-            
-            logger.info(f"✅ Empresa {company_name} actualizada en tabla de control")
-            
-        except Exception as e:
-            logger.error(f"❌ Error actualizando empresa scrapeada: {e}")
 
 
     def save_contacts_to_bigquery(self,contacts_results):
