@@ -51,7 +51,7 @@ class GenIaService:
 
         - No Referenciador: Personas que no toman decisiones ni pueden redirigir o comunicar con los tomadores de decisión.
 
-        -Invalido: Si esta persona no trabaja en la empresa (Puede ser que haya trabajado antes pero actualmente no y seguiria siendo invalido)
+        -Invalido: Si esta persona no trabaja en la empresa o no tiene relación con la empresa.
 
         - El rol puede variar sutilmente pero si sigue la línea del perfil o esta en otro idioma, clasifícalo en la categoría correspondiente.
 
