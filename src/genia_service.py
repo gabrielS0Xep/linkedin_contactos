@@ -35,16 +35,15 @@ class GenIaService:
 
         prompt = f"""
                 #CONTEXT#
-
         Actúa como un analista de riesgos especializado en la clasificación de contactos corporativos. Tu objetivo es utilizar la información proporcionada para clasificar con precisión a cada individuo según su rol y su conexión con el departamento de finanzas, siguiendo las reglas establecidas.
-        Analiza la información traída por {url} de la búsqueda con los links proporcionados. Clasifica los contactos encontrados según los criterios de calidad y roles especificados.
+        Analiza la información traída por {url} de la búsqueda. Clasifica el perfil del contacto según los criterios de calidad y roles especificados.
         
         # #OBJECTIVE#
-        Clasificar los contactos estructurados de la empresa {biz_name} en tres categorías: Tomadores de Decisión, Referenciadores y No referenciadores.
+        Clasificar el perfil del contacto de la empresa {biz_name} en tres categorías: Tomadores de Decisión, Referenciadores y No referenciadores.
         #INSTRUCTIONS#
 
         1. Utiliza únicamente la información contenida en {url} de la búsqueda con los links proporcionados y la informacion de {title} y {snippet}. No realices búsquedas externas ni utilices información fuera de la proporcionada.
-        2. Clasifica cada contacto según su título o rol:
+        2. Clasifica el perfil del contacto según su título o rol:
 
         - Tomador de Decisión: Dueño, Gerente General, Director de Finanzas, CFO, Gerente de Administración y Finanzas, Jefe de Tesorería, Controller Financiero, Gerente de Planeación Financiera, Contador, Presidente.
 
@@ -56,9 +55,9 @@ class GenIaService:
 
         - El rol puede variar sutilmente pero si sigue la línea del perfil o esta en otro idioma, clasifícalo en la categoría correspondiente.
 
-        3. Para cada contacto, incluye los siguientes campos: SCORE, EMPRESA_ACTUAL,ROL_FINANZAS,EXPLICACION
+        3. Para el perfil del contacto, incluye los siguientes campos: SCORE, EMPRESA_ACTUAL,ROL_FINANZAS,EXPLICACION
         4. Asegurate de que el contacto obtenido, trabaje actualmente en {biz_name}, sino es el caso descartalo como posible contacto y marcalo en su score como invalido.
-        5. Devuelve la información en formato de texto, donde cada contacto es un objeto con su información respectiva. Responde en formato:
+        5. Devuelve la información en formato de texto, donde el perfil del contacto es un objeto con su información respectiva. Responde en formato:
             SCORE: Tomador de Decisión/Referenciador/No Referenciador/Invalido
             EMPRESA_ACTUAL: Sí/No/Incierto
             ROL_FINANZAS: Sí/No/Incierto
@@ -150,7 +149,7 @@ class GenIaService:
             rol_match = re.search(r'ROL_FINANZAS:\s*([^\n]+)', result)
             explicacion_match = re.search(r'EXPLICACION:\s*([^\n]+)', result)
 
-            score = int(score_match.group(1)) if score_match else 0
+            score = str(score_match.group(1)) if score_match else "Invalido"
             empresa_actual = empresa_match.group(1).strip() if empresa_match else "Incierto"
             rol_finanzas = rol_match.group(1).strip() if rol_match else "Incierto"
             explicacion = explicacion_match.group(1).strip() if explicacion_match else "Sin explicación"
