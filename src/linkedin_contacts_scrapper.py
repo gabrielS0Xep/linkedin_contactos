@@ -1,3 +1,4 @@
+from annotated_types import LowerCase
 import requests
 import json
 import time
@@ -141,13 +142,13 @@ class LinkedInContactsSelectiveScraper:
                 logger.info(f"🔍 Evaluacion: {evaluation}")
                 evaluated_profiles.append(evaluation)
 
-                if structured_info['score'] >= min_score:
+                if LowerCase(structured_info['score']) != 'invalido':
                     high_score_profiles.append(evaluation)
                     logger.info(f"    ✅ SELECCIONADO - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
                 else:
                     logger.info(f"    ❌ Descartado - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
 
-                time.sleep(0.3)  # Rate limiting para OpenAI
+                time.sleep(0.3)  
 
             except Exception as e:
                 logger.info(f"    ❌ Error evaluando perfil: {str(e)}")

@@ -53,6 +53,106 @@ class GenIaService:
         EXPLICACION: [breve explicación]
         """
 
+        url = profile_data['url']
+        title = profile_data['title']
+        snippet = profile_data['snippet']
+        biz_name = profile_data['biz_name']
+
+        new_prompt = f"""
+        #CONTEXT#
+        # Analiza la información traída por {url} de la búsqueda con los links proporcionados. Clasifica los contactos encontrados según los criterios de calidad y roles especificados.
+        # #OBJECTIVE#
+        
+        Clasificar los contactos estructurados de la empresa {biz_name} en tres categorías: Tomadores de Decisión, Referenciadores y No referenciadores, y devolver la información en formato JSON ordenada por estas categorías.
+    `    #INSTRUCTIONS#
+
+        1. Utiliza únicamente la información contenida en {url} de la búsqueda con los links proporcionados y la informacion de {title} y {snippet}. No realices búsquedas externas ni utilices información fuera de la proporcionada.
+
+        2. Para cada contacto, verifica que actualmente trabaje en {biz_name}. Si no es así, descártalo.
+
+        3. Clasifica cada contacto según su título o rol:
+
+        - Tomadores de Decisión: Dueño, Gerente General, Director de Finanzas, CFO, Gerente de Administración y Finanzas, Jefe de Tesorería, Controller Financiero, Gerente de Planeación Financiera, Contador, Presidente.
+
+        - Referenciadores: Personas que no toman decisiones pero tienen contacto directo con los tomadores de decisión (ejemplo: Secretaria, Analista, Gerente Generales, Gerente de Operaciones, Roles de gerencias en general).
+
+        - No Referenciadores: Personas que no toman decisiones ni pueden redirigir o comunicar con los tomadores de decisión.
+
+        - El rol puede variar sutilmente pero si sigue la línea del perfil o esta en otro idioma, clasifícalo en la categoría correspondiente.
+
+        4. Para cada contacto, incluye los siguientes campos: SCORE, EMPRESA_ACTUAL,ROL_FINANZAS,EXPLICACION
+        5. Asegurate de que el contacto obtenido, trabaje actualmente en {biz_name}, sino es el caso descartalo como posible contacto.
+        6. Devuelve la información en formato de texto, donde cada contacto es un objeto con su información respectiva. Responde en formato:
+            SCORE: X
+            EMPRESA_ACTUAL: Sí/No/Incierto
+            ROL_FINANZAS: Sí/No/Incierto
+            EXPLICACION: [breve explicación]
+
+        #EXAMPLES#
+
+        Input:
+
+        "Contactos Estructurados": [
+
+            "nombre": "Juan Pérez", "título": "Gerente General", "url": "https://linkedin.com/in/juanperez",
+
+            "nombre": "Ana López", "título": "Secretaria", "url": "https://linkedin.com/in/analopez",
+
+            "nombre": "Carlos Ruiz", "título": "Analista", "url": "https://linkedin.com/in/carlosruiz"
+
+        ]
+
+
+
+        Output esperado:
+
+        [
+
+        
+
+            "nombre": "Juan Pérez",
+
+            "título": "Gerente General",
+
+            "url": "https://linkedin.com/in/juanperez",
+
+            "calidad": "Tomador de Decisión",
+
+            "empresa": "empresa 1",
+
+        ,
+
+        
+
+            "nombre": "Ana López",
+
+            "título": "Secretaria",
+
+            "url": "https://linkedin.com/in/analopez",
+
+            "calidad": "Referenciador",
+
+            "empresa": "empresa 1",
+
+        ,
+
+        
+
+            "nombre": "Carlos Ruiz",
+
+            "título": "Analista",
+
+            "url": "https://linkedin.com/in/carlosruiz",
+
+            "calidad": "Referenciador",
+
+            "empresa": "empresa 1",
+
+        
+
+        ]
+                """
+
         try:
             """
             response = self.openai_client.chat.completions.create(
