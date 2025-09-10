@@ -261,6 +261,7 @@ class LinkedInContactsSelectiveScraper:
             clean_data['topSkillsByEndorsements'] = str(scraped.get('topSkillsByEndorsements', '')).strip()
             clean_data['addressCountryOnly'] = str(scraped.get('addressCountryOnly', '')).strip()
             clean_data['addressWithCountry'] = str(scraped.get('addressWithCountry', '')).strip()
+            clean_data['explicacion'] = str(scraped.get('explicacion', '')).strip()
             clean_data_list.append(clean_data)
             clean_data = {}
 
@@ -359,7 +360,8 @@ class LinkedInContactsSelectiveScraper:
                 'current_job_duration': profile['currentJobDuration'],
                 'cntry_value': profile['addressCountryOnly'],
                 'cntry_city_value': profile['addressWithCountry'],
-                'src_scraped_dt': datetime.now()
+                'src_scraped_dt': datetime.now(),
+                'ai_explanation': profile['explicacion']    
             }
 
             contacts_data.append(contact_record)
