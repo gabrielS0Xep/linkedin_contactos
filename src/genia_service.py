@@ -28,130 +28,92 @@ class GenIaService:
         Empresa buscada: {profile_data['biz_name']}
         """
 
-        prompt = f"""
-        Evalúa este perfil de LinkedIn para decisiones financieras en la empresa "{profile_data['biz_name']}":
-
-        {profile_text}
-
-        Evalúa:
-        1. ¿Trabaja ACTUALMENTE en "{profile_data['biz_name']}"? (crítico)
-        2. ¿Su rol actual es de finanzas/contabilidad? (importante, considera roles con nombres en inglés como finance también parte de roles estratégicos)
-        3. ¿Tiene poder de decisión financiera? (importante)
-        4. ¿Nivel de seniority? (relevante)
-
-        Scoring:
-        - 9-10: CEO/CFO actual de la empresa
-        - 7-8: Finance Director/Controller actual
-        - 5-6: Finance Manager/Analyst actual
-        - 3-4: Finance junior o ex-empleado
-        - 1-2: No relevante o no trabaja en la empresa
-
-        Responde en formato:
-        SCORE: X
-        EMPRESA_ACTUAL: Sí/No/Incierto
-        ROL_FINANZAS: Sí/No/Incierto
-        EXPLICACION: [breve explicación]
-        """
-
         url = profile_data['url']
         title = profile_data['title']
         snippet = profile_data['snippet']
         biz_name = profile_data['biz_name']
 
-        new_prompt = f"""
-        #CONTEXT#
-        # Analiza la información traída por {url} de la búsqueda con los links proporcionados. Clasifica los contactos encontrados según los criterios de calidad y roles especificados.
-        # #OBJECTIVE#
+        prompt = f"""
+                #CONTEXT#
+
+        Actúa como un analista de riesgos especializado en la clasificación de contactos corporativos. Tu objetivo es utilizar la información proporcionada para clasificar con precisión a cada individuo según su rol y su conexión con el departamento de finanzas, siguiendo las reglas establecidas.
+        Analiza la información traída por {url} de la búsqueda con los links proporcionados. Clasifica los contactos encontrados según los criterios de calidad y roles especificados.
         
-        Clasificar los contactos estructurados de la empresa {biz_name} en tres categorías: Tomadores de Decisión, Referenciadores y No referenciadores, y devolver la información en formato JSON ordenada por estas categorías.
-    `    #INSTRUCTIONS#
+        # #OBJECTIVE#
+        Clasificar los contactos estructurados de la empresa {biz_name} en tres categorías: Tomadores de Decisión, Referenciadores y No referenciadores.
+        #INSTRUCTIONS#
 
         1. Utiliza únicamente la información contenida en {url} de la búsqueda con los links proporcionados y la informacion de {title} y {snippet}. No realices búsquedas externas ni utilices información fuera de la proporcionada.
+        2. Clasifica cada contacto según su título o rol:
 
-        2. Para cada contacto, verifica que actualmente trabaje en {biz_name}. Si no es así, descártalo.
+        - Tomador de Decisión: Dueño, Gerente General, Director de Finanzas, CFO, Gerente de Administración y Finanzas, Jefe de Tesorería, Controller Financiero, Gerente de Planeación Financiera, Contador, Presidente.
 
-        3. Clasifica cada contacto según su título o rol:
+        - Referenciador: Personas que no toman decisiones pero tienen contacto directo con los tomadores de decisión (ejemplo: Secretaria, Analista, Gerente Generales, Gerente de Operaciones, Roles de gerencias en general).
 
-        - Tomadores de Decisión: Dueño, Gerente General, Director de Finanzas, CFO, Gerente de Administración y Finanzas, Jefe de Tesorería, Controller Financiero, Gerente de Planeación Financiera, Contador, Presidente.
+        - No Referenciador: Personas que no toman decisiones ni pueden redirigir o comunicar con los tomadores de decisión.
 
-        - Referenciadores: Personas que no toman decisiones pero tienen contacto directo con los tomadores de decisión (ejemplo: Secretaria, Analista, Gerente Generales, Gerente de Operaciones, Roles de gerencias en general).
-
-        - No Referenciadores: Personas que no toman decisiones ni pueden redirigir o comunicar con los tomadores de decisión.
+        -Invalido: Si esta persona no trabaja en la empresa (Puede ser que haya trabajado antes pero actualmente no y seguiria siendo invalido)
 
         - El rol puede variar sutilmente pero si sigue la línea del perfil o esta en otro idioma, clasifícalo en la categoría correspondiente.
 
-        4. Para cada contacto, incluye los siguientes campos: SCORE, EMPRESA_ACTUAL,ROL_FINANZAS,EXPLICACION
-        5. Asegurate de que el contacto obtenido, trabaje actualmente en {biz_name}, sino es el caso descartalo como posible contacto.
-        6. Devuelve la información en formato de texto, donde cada contacto es un objeto con su información respectiva. Responde en formato:
-            SCORE: X
+        3. Para cada contacto, incluye los siguientes campos: SCORE, EMPRESA_ACTUAL,ROL_FINANZAS,EXPLICACION
+        4. Asegurate de que el contacto obtenido, trabaje actualmente en {biz_name}, sino es el caso descartalo como posible contacto y marcalo en su score como invalido.
+        5. Devuelve la información en formato de texto, donde cada contacto es un objeto con su información respectiva. Responde en formato:
+            SCORE: Tomador de Decisión/Referenciador/No Referenciador/Invalido
             EMPRESA_ACTUAL: Sí/No/Incierto
             ROL_FINANZAS: Sí/No/Incierto
-            EXPLICACION: [breve explicación]
+            EXPLICACION: [breve explicación de porque se tomo la decision]
 
         #EXAMPLES#
+        Input 1:
+        Tittle = "Gerente General" 
+        url = "https://linkedin.com/in/juanperez"
+        Snippet = "Gerente General en Maderas y Materiales la Silla, SA DE CV · Experiencia: Maderas y Materiales la Silla, SA DE CV · Ubicación: San Nicolás de los Garza ..."
+        biz_name = 'Maderas y materiales la silla, SA DE CV'
 
-        Input:
+        Output 1:
+        SCORE: Tomador de Decisión
+        EMPRESA_ACTUAL: Sí
+        ROL_FINANZAS: Sí
+        EXPLICACION: La persona trabaja en un rol central de la empresa, esta relacionado con finanzas y toma las decisiones dentro de la misma.
 
-        "Contactos Estructurados": [
+        Input 2:
+        Tittle = "Analista de sistemas"
+        url = "https://linkedin.com/in/sofiaruiz"
+        Snippet = "Analista de Sistemas en Maderas y Materiales la Silla, SA DE CV · Experiencia en desarrollo de software..."
+        biz_name = 'Maderas y materiales la silla, SA DE CV'
 
-            "nombre": "Juan Pérez", "título": "Gerente General", "url": "https://linkedin.com/in/juanperez",
+        Output 2:
+        SCORE: No Referenciador
+        EMPRESA_ACTUAL: Sí
+        ROL_FINANZAS: No
+        EXPLICACION: La persona trabaja en la empresa pero su rol de "Analista de Sistemas" no tiene relación directa con finanzas ni con la toma de decisiones financieras o administrativas.
 
-            "nombre": "Ana López", "título": "Secretaria", "url": "https://linkedin.com/in/analopez",
+        Input 3:
+        Tittle = "Gerente de Finanzas"
+        url = "https://linkedin.com/in/carlosgomez"
+        Snippet = "Gerente de Finanzas en 'Empresa XYZ' · Experiencia previa en Maderas y Materiales la Silla, SA DE CV (2018-2022)."
+        biz_name = 'Maderas y materiales la silla, SA DE CV'
 
-            "nombre": "Carlos Ruiz", "título": "Analista", "url": "https://linkedin.com/in/carlosruiz"
+        Output 3:
+        SCORE: Invalido
+        EMPRESA_ACTUAL: No
+        ROL_FINANZAS: Sí
+        EXPLICACION: El contacto no trabaja actualmente en la empresa objetivo. Su rol de "Gerente de Finanzas" es de un empleo anterior.
 
-        ]
 
+        Input 4:
+        Tittle = "Senior Manager"
+        url = "https://linkedin.com/in/lauramartinez"
+        Snippet = "Senior Manager en Maderas y Materiales la Silla, SA DE CV."
+        biz_name = 'Maderas y materiales la silla, SA DE CV'
 
-
-        Output esperado:
-
-        [
-
-        
-
-            "nombre": "Juan Pérez",
-
-            "título": "Gerente General",
-
-            "url": "https://linkedin.com/in/juanperez",
-
-            "calidad": "Tomador de Decisión",
-
-            "empresa": "empresa 1",
-
-        ,
-
-        
-
-            "nombre": "Ana López",
-
-            "título": "Secretaria",
-
-            "url": "https://linkedin.com/in/analopez",
-
-            "calidad": "Referenciador",
-
-            "empresa": "empresa 1",
-
-        ,
-
-        
-
-            "nombre": "Carlos Ruiz",
-
-            "título": "Analista",
-
-            "url": "https://linkedin.com/in/carlosruiz",
-
-            "calidad": "Referenciador",
-
-            "empresa": "empresa 1",
-
-        
-
-        ]
-                """
+        Output 4:
+        SCORE: Referenciador
+        EMPRESA_ACTUAL: Sí
+        ROL_FINANZAS: Incierto
+        EXPLICACION: El título de "Senior Manager" es ambiguo. No especifica un área (finanzas, operaciones, marketing, etc.), por lo que no es posible confirmar si tiene un rol de finanzas. Se clasifica como Referenciador por su posición jerárquica.
+        """
 
         try:
             """

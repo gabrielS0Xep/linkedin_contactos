@@ -163,6 +163,13 @@ class LinkedInContactsSelectiveScraper:
 
         return high_score_profiles, evaluated_profiles
 
+    def filter_profiles_by_score(self, profiles: List[Dict]) -> List[Dict]:
+        """
+        Filtra los perfiles por score y retorna los perfiles validos tomadores de decision, referenciadores si no se encontraron tomadores de decisiones
+        y no referenciadores si no se encontraron referenciadores.
+        """
+        return [profile for profile in profiles if LowerCase(profile['score']) != 'invalido']
+
     def scrape_selected_profiles(self, selected_profiles: List[Dict]) -> Dict:
         """
         Scrapea solo los perfiles seleccionados con dev_fusion
