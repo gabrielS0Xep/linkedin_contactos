@@ -142,11 +142,11 @@ class LinkedInContactsSelectiveScraper:
                 logger.info(f"🔍 Evaluacion: {evaluation}")
                 evaluated_profiles.append(evaluation)
 
-                if LowerCase(str(evaluation['score'])) != 'invalido':
-                    high_score_profiles.append(evaluation)
-                    logger.info(f"    ✅ SELECCIONADO - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
-                else:
-                    logger.info(f"    ❌ Descartado - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
+                #if LowerCase(str(evaluation['score'])) != 'invalido':
+                high_score_profiles.append(evaluation)
+                #    logger.info(f"    ✅ SELECCIONADO - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
+               # else:
+                #    logger.info(f"    ❌ Descartado - Score: {structured_info['score']} - {structured_info['rol_finanzas'][:50]}...")
 
                 time.sleep(0.3)  
 
@@ -431,7 +431,7 @@ class LinkedInContactsSelectiveScraper:
         #self.process_contacts_for_bigquery(merged_profiles)
 
         return merged_profiles
-        
+
     def check_exists_in_bigquery(self, companies: List[Dict]):
         """
         Verifica si las empresas ya existen en BigQuery
