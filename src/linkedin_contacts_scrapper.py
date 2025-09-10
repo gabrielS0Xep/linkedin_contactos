@@ -131,7 +131,7 @@ class LinkedInContactsSelectiveScraper:
                 result = genia_service.evaluate_profile_relevance_detailed(
                     profile_data
                 )
-
+                logger.info(f"🔍 Resultado de evaluacion: {result}")
                 structured_info = genia_service.extract_structured_info(result)
         
                 evaluation = {
@@ -139,6 +139,7 @@ class LinkedInContactsSelectiveScraper:
                     **structured_info,
                     'evaluation_timestamp': datetime.now().isoformat()
                 }
+
                 logger.info(f"🔍 Evaluacion: {evaluation}")
                 evaluated_profiles.append(evaluation)
 

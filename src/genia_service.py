@@ -144,7 +144,7 @@ class GenIaService:
         """ 
         try:
             # Extraer información estructurada de la respuesta
-            score_match = re.search(r'SCORE:\s*(\d+)', result)
+            score_match = re.search(r'SCORE:\s*([^\n]+)', result)
             empresa_match = re.search(r'EMPRESA_ACTUAL:\s*([^\n]+)', result)
             rol_match = re.search(r'ROL_FINANZAS:\s*([^\n]+)', result)
             explicacion_match = re.search(r'EXPLICACION:\s*([^\n]+)', result)
