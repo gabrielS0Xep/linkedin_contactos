@@ -149,7 +149,7 @@ class GenIaService:
             rol_match = re.search(r'ROL_FINANZAS:\s*([^\n]+)', result)
             explicacion_match = re.search(r'EXPLICACION:\s*([^\n]+)', result)
 
-            score = score_match.group(1).strip() if score_match else "Invalido"
+            score = score_match.group(1).strip()
             empresa_actual = empresa_match.group(1).strip() if empresa_match else "Incierto"
             rol_finanzas = rol_match.group(1).strip() if rol_match else "Incierto"
             explicacion = explicacion_match.group(1).strip() if explicacion_match else "Sin explicación"
