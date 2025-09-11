@@ -72,7 +72,6 @@ def scrape():
     Body JSON (opcional):
     {
         "batch_size": 10,
-        "min_score": 7,
         "max_per_company": 4
     }
     
@@ -130,7 +129,6 @@ def scrape():
     data = request.get_json()
     
     batch_size = int(str(data.get('batch_size', 1)))
-    min_score = int(str(data.get('min_score', 7)))
     max_per_company = int(str(data.get('max_per_company', 4)))
 
 
@@ -154,7 +152,6 @@ def scrape():
         results = scraper.run_selective_test(
             companies=companies,
             max_per_company=max_per_company,  # Máximo 15 perfiles por empresa
-            min_score=min_score          # Score Minimo que devolvera de contactos
         )
 
         if not results:

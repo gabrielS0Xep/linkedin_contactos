@@ -117,7 +117,7 @@ class LinkedInContactsSelectiveScraper:
 
     
 
-    def select_best_profiles(self, all_profiles: List[Dict], min_score: int = 7) -> Tuple[List[Dict], List[Dict]]:
+    def select_best_profiles(self, all_profiles: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
         """
         Evalúa todos los perfiles y selecciona solo los mejores
         """
@@ -166,34 +166,54 @@ class LinkedInContactsSelectiveScraper:
 
     def filter_profiles_by_score(self, profiles: List[Dict]) -> List[Dict]:
         """
-        Filtra los perfiles por score y retorna los perfiles validos tomadores de decision, referenciadores si no se encontraron tomadores de decisiones
-        y no referenciadores si no se encontraron referenciadores.
+        Filtra los perfiles por score, aplicando la lógica de prioridad y el límite por empresa.
+
+        Prioridad:
+        1. Tomador de Decisión (TD)
+        2. Referenciador
+        3. No Referenciador
+
+        Reglas adicionales:
+        - Máximo 3 contactos por empresa.
+        - Si ya hay un TD o un Referenciador, los No Referenciadores no se consideran.
         """
-
-        # Selecciona a lo sumo un perfil por empresa con prioridad:
-        # Tomador de Decisión > Referenciador > No Referenciador
-        valid_profiles = []
-        priority = {
-            'Tomador de Decisión': 3,
-            'Referenciador': 2,
-            'No Referenciador': 1,
-        }
-
-        best_profile_by_biz = {}
-
+        profiles_by_biz = {}
+        
+        # 1. Agrupar perfiles por empresa
         for profile in profiles:
             biz_id = profile.get('biz_identifier')
-            score = profile.get('score')
+            if biz_id:
+                if biz_id not in profiles_by_biz:
+                    profiles_by_biz[biz_id] = []
+                profiles_by_biz[biz_id].append(profile)
+        
+        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador']
+        valid_profiles = []
 
-            if biz_id is None or score not in priority:
-                continue
-
-            current_best = best_profile_by_biz.get(biz_id)
-
-            if current_best is None or priority[score] >= priority.get(current_best.get('score'), 0):
-                best_profile_by_biz[biz_id] = score
-                valid_profiles.append(profile)
-
+        # 2. Iterar sobre cada empresa y aplicar las reglas de filtrado
+        for biz_id, biz_profiles in profiles_by_biz.items():
+            # Ordenar los perfiles de la empresa por prioridad
+            biz_profiles.sort(key=lambda p: priority_order.index(p.get('score', 'No Referenciador')))
+            
+            selected_for_biz = []
+            has_td_or_referenciador = False
+            
+            for profile in biz_profiles:
+                score = profile.get('score')
+                
+                if score in ['Tomador de Decisión', 'Referenciador']:
+                    has_td_or_referenciador = True
+                
+                # Aplicar la lógica de "no considerar No Referenciador si ya hay TD o Referenciador"
+                if has_td_or_referenciador and score == 'No Referenciador':
+                    continue
+                
+                # Limitar a 3 perfiles por empresa
+                if len(selected_for_biz) < 3:
+                    selected_for_biz.append(profile)
+            
+            valid_profiles.extend(selected_for_biz)
+        
         return valid_profiles
 
     def scrape_selected_profiles(self, selected_profiles: List[Dict]) -> Dict:
@@ -399,14 +419,13 @@ class LinkedInContactsSelectiveScraper:
         return contacts_data
 
 
-    def run_selective_test(self, companies: List[str], max_per_company: int = 20, min_score: int = 7):
+    def run_selective_test(self, companies: List[str], max_per_company: int = 20, ):
         """
         Ejecuta el test selectivo completo
         """
   
         logger.info(f"  Empresas: {len(companies)}")
         logger.info(f"  Máx. perfiles por empresa: {max_per_company}")
-        logger.info(f"  Score mínimo para scraping: {min_score}")
 
         self.test_metrics['start_time'] = datetime.now()
         self.test_metrics['companies_processed'] = companies
@@ -429,7 +448,7 @@ class LinkedInContactsSelectiveScraper:
         logger.info(f"🔍 Perfiles encontrados: {len(all_profiles)}")
         logger.info(f"🔍 Perfiles: {all_profiles}")
 
-        selected_profiles, _ = self.select_best_profiles(all_profiles, min_score)
+        selected_profiles, _ = self.select_best_profiles(all_profiles)
 
         if selected_profiles == []:
             logger.error("❌ Ningún perfil alcanzó el score mínimo")

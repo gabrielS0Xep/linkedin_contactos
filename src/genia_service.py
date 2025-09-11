@@ -161,7 +161,6 @@ class GenIaService:
                 'explicacion': explicacion
             }
 
-            logger.info(f"🔍 Evaluación informacion estructurada: {structured_info}")
             return structured_info
 
         except Exception as e:
