@@ -186,8 +186,8 @@ class LinkedInContactsSelectiveScraper:
                 if biz_id not in profiles_by_biz:
                     profiles_by_biz[biz_id] = []
                 profiles_by_biz[biz_id].append(profile)
-        
-        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador']
+
+        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador','Invalido']
         valid_profiles = []
 
         # 2. Iterar sobre cada empresa y aplicar las reglas de filtrado
@@ -200,7 +200,7 @@ class LinkedInContactsSelectiveScraper:
             
             for profile in biz_profiles:
                 score = profile.get('score')
-                
+
                 if score in ['Tomador de Decisión', 'Referenciador']:
                     has_td_or_referenciador = True
                 
@@ -208,6 +208,8 @@ class LinkedInContactsSelectiveScraper:
                 if has_td_or_referenciador and score == 'No Referenciador':
                     continue
                 
+                if score == 'Invalido':
+                    continue
                 # Limitar a 3 perfiles por empresa
                 if len(selected_for_biz) < 3:
                     selected_for_biz.append(profile)
