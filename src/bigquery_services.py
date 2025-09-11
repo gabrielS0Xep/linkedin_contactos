@@ -210,6 +210,11 @@ class BigQueryService:
                     table_schema=None,
                     location=location,
                 )
+
+            # Limpia duplicados de la tabla de control
+            result_clean_duplicates = self.clean_duplicates_from_control_table(Config.CONTROL_TABLE_NAME)
+            logger.info(f"✅ Limpieza de duplicados en la tabla de control: {result_clean_duplicates}")
+
             return len(df_datos_insertar), 0
         else:
             logger.warning("⚠️ No hay datos para marcar como scrapeadas")
@@ -282,6 +287,8 @@ class BigQueryService:
                     })
 
             total_filtradas = len(companies)
+
+            # Limpia duplicados de la tabla de contro
 
             logger.info(f"✅ Query ejecutada exitosamente")
             logger.info(f"📊 Empresas SIN scrappear contactos en LinkedIn: {total_filtradas}")
@@ -623,3 +630,61 @@ class BigQueryService:
         except Exception as e:
             logger.error(f"❌ Error contando empresas pendientes: {e}")
             return 0
+
+    def clean_duplicates_from_control_table(self, table_name: str = "linkedin_scrapped_contacts") -> Dict:
+        """
+        Limpia registros duplicados de la tabla linkedin_scrapped_contacts.
+        Mantiene el registro más reciente basado en src_scraped_dt.
+        
+        Args:
+            table_name: Nombre de la tabla a limpiar
+            
+        Returns:
+            Dict con el estado de la operación
+        """
+        try:
+            destination_table = f'{self.__project_id}.{self.__dataset}.{table_name}'
+            
+            # Query para eliminar duplicados manteniendo el más reciente
+            deduplication_query = f"""
+            CREATE OR REPLACE TABLE `{destination_table}` AS
+            SELECT * EXCEPT(row_num)
+            FROM (
+                SELECT *,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY biz_identifier
+                           ORDER BY src_scraped_d DESC
+                       ) as row_num
+                FROM `{destination_table}`
+            )
+            WHERE row_num = 1
+            """
+            
+            logger.info(f"🧹 Iniciando limpieza de duplicados en {destination_table}...")
+            
+            # Ejecutar query de deduplicación
+            query_job = self.__bq_client.query(deduplication_query)
+            result = query_job.result()
+            
+            # Obtener estadísticas
+            count_query = f"SELECT COUNT(*) as count FROM `{destination_table}`"
+            count_job = self.__bq_client.query(count_query)
+            count_result = list(count_job.result())
+            final_count = count_result[0].count if count_result else 0
+            
+            logger.info(f"✅ Limpieza de duplicados completada. Registros finales: {final_count}")
+            
+            return {
+                "success": True,
+                "message": "Duplicados eliminados exitosamente",
+                "final_count": final_count,
+                "destination_table": destination_table
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error limpiando duplicados: {e}")
+            return {
+                "success": False,
+                "message": f"Error limpiando duplicados: {str(e)}",
+                "final_count": None
+            }

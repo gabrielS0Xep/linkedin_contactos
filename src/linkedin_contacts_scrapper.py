@@ -131,7 +131,7 @@ class LinkedInContactsSelectiveScraper:
                 result = genia_service.evaluate_profile_relevance_detailed(
                     profile_data
                 )
-                logger.info(f"🔍 Resultado de evaluacion: {result}")
+                
                 structured_info = genia_service.extract_structured_info(result)
         
                 evaluation = {
@@ -169,7 +169,32 @@ class LinkedInContactsSelectiveScraper:
         Filtra los perfiles por score y retorna los perfiles validos tomadores de decision, referenciadores si no se encontraron tomadores de decisiones
         y no referenciadores si no se encontraron referenciadores.
         """
-        return [profile for profile in profiles if LowerCase(profile['score']) != 'invalido']
+
+        # Selecciona a lo sumo un perfil por empresa con prioridad:
+        # Tomador de Decisión > Referenciador > No Referenciador
+        valid_profiles = []
+        priority = {
+            'Tomador de Decisión': 3,
+            'Referenciador': 2,
+            'No Referenciador': 1,
+        }
+
+        best_profile_by_biz = {}
+
+        for profile in profiles:
+            biz_id = profile.get('biz_identifier')
+            score = profile.get('score')
+
+            if biz_id is None or score not in priority:
+                continue
+
+            current_best = best_profile_by_biz.get(biz_id)
+
+            if current_best is None or priority[score] >= priority.get(current_best.get('score'), 0):
+                best_profile_by_biz[biz_id] = score
+                valid_profiles.append(profile)
+
+        return valid_profiles
 
     def scrape_selected_profiles(self, selected_profiles: List[Dict]) -> Dict:
         """
@@ -235,7 +260,7 @@ class LinkedInContactsSelectiveScraper:
             logger.error(f"❌ Error en scraping: {e}")
             return {'success': False, 'error': str(e)}
 
-
+    
     def clean_scraped_data(self, scraped_data: List[Dict]) -> Dict:
         """
         Limpia los datos scrapeados
