@@ -114,10 +114,9 @@ def scrape():
     
     """
     # 🔑 API KEYS CONFIGURADAS
-    bigquery_service,secret_manager_services = get_services()
-    SERPER_API_KEY  = secret_manager_services.get_secret('api_key_serper_linkedin_contactos')
+    SERPER_API_KEY  = Config.SERPER_API_KEY
     # 🆕 API KEY DE APIFY
-    APIFY_TOKEN = secret_manager_services.get_secret('apify_token')
+    APIFY_TOKEN = Config.APIFY_TOKEN
     
     # PASO 0: Crear tablas si no existen
     if not bigquery_service.table_exists(Config.CONTROL_TABLE_NAME):

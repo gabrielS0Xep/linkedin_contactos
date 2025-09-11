@@ -207,9 +207,10 @@ class LinkedInContactsSelectiveScraper:
                 # Aplicar la lógica de "no considerar No Referenciador si ya hay TD o Referenciador"
                 if has_td_or_referenciador and score == 'No Referenciador':
                     continue
-                
+
                 if score == 'Invalido':
                     continue
+
                 # Limitar a 3 perfiles por empresa
                 if len(selected_for_biz) < 3:
                     selected_for_biz.append(profile)

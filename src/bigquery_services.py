@@ -653,7 +653,7 @@ class BigQueryService:
                 SELECT *,
                        ROW_NUMBER() OVER (
                            PARTITION BY biz_identifier
-                           ORDER BY src_scraped_d DESC
+                           ORDER BY scrapping_d DESC
                        ) as row_num
                 FROM `{destination_table}`
             )
