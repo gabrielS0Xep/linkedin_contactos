@@ -152,13 +152,11 @@ class LinkedInContactsSelectiveScraper:
                 continue
 
         self.test_metrics['profiles_evaluated'] = len(evaluated_profiles)
-        self.test_metrics['high_score_profiles'] = len(high_score_profiles)
-
+        
         logger.info(f"\n📊 RESULTADOS DE EVALUACIÓN:")
         logger.info(f"  Perfiles evaluados: {len(evaluated_profiles)}")
-        logger.info(f"  Perfiles seleccionados: {len(high_score_profiles)}")
 
-        return high_score_profiles, evaluated_profiles
+        return high_score_profiles
 
     def filter_profiles_by_score(self, profiles: List[Dict]) -> List[Dict]:
         """
@@ -216,7 +214,8 @@ class LinkedInContactsSelectiveScraper:
                     selected_for_biz.append(profile)
             
             valid_profiles.extend(selected_for_biz)
-        
+
+        self.test_metrics['high_score_profiles'] = len(valid_profiles)
         return valid_profiles
 
     def scrape_selected_profiles(self, selected_profiles: List[Dict]) -> Dict:
@@ -362,20 +361,22 @@ class LinkedInContactsSelectiveScraper:
 
                     logger.info(f"🔍 Scraped data match: {scraped_data_match}")
                     
+                    # Preferir campos de evaluación (incluida 'explicacion') y fusionar datos scrapeados si existen
+                    scraped_fields = scraped_data_match or {}
                     merged_profile = {
-                        # Datos de evaluación
-                        **evaluation,
-                        **scraped_data_match,
+                        **scraped_fields,   # datos del scraper (nombre, empresa, etc.)
+                        **evaluation,       # mantiene 'explicacion' y demás campos de IA
+                        'ai_explanation': evaluation['explicacion'] or evaluation['ia_explanation'],
                         'scraping_success': scraped_data_match is not None
                     }
-                    logger.info(f"✅ Combinados {len(merged_profiles)} perfiles")
-                    logger.info(f"✅ Perfiles combinados: {merged_profile}")
+
                     merged_profiles.append(merged_profile)
 
                 except Exception as e:
                     logger.error(f"❌ Error formateando los datos del perfil: {original_url}  msg:{e}")
                     continue
-
+            
+            logger.info(f"✅ Perfiles combinados: {merged_profile}")
             print(f"✅ Combinados {len(merged_profiles)} perfiles")
             return merged_profiles
 
@@ -416,7 +417,7 @@ class LinkedInContactsSelectiveScraper:
                 'cntry_value': profile['addressCountryOnly'],
                 'cntry_city_value': profile['addressWithCountry'],
                 'src_scraped_dt': datetime.now(),
-                'ai_explanation': profile['explicacion']    
+                'ai_explanation': profile['explicacion']  or profile['ia_explanation']
             }
 
             contacts_data.append(contact_record)
@@ -457,7 +458,7 @@ class LinkedInContactsSelectiveScraper:
         logger.info(f"🔍 Perfiles encontrados: {len(all_profiles)}")
         logger.info(f"🔍 Perfiles: {all_profiles}")
 
-        selected_profiles, _ = self.select_best_profiles(all_profiles)
+        selected_profiles = self.select_best_profiles(all_profiles)
 
         if selected_profiles == []:
             logger.error("❌ Ningún perfil alcanzó el score mínimo")
@@ -493,9 +494,7 @@ class LinkedInContactsSelectiveScraper:
             cleaned_scraped_data
         )
         
-        # 5. NUEVO: Procesar contactos para BigQuery
-        #self.process_contacts_for_bigquery(merged_profiles)
-
+ 
         return merged_profiles
 
     def check_exists_in_bigquery(self, companies: List[Dict]):

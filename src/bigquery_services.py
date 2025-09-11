@@ -245,10 +245,6 @@ class BigQueryService:
                         df_contacts[field] = df_contacts[field].fillna('').astype(str)
                         df_contacts[field] = df_contacts[field].str.replace('\x00', '', regex=False)
 
-                # Limpiar campo numérico
-                if 'ai_score' in df_contacts.columns:
-                    df_contacts['ai_score'] = pd.to_numeric(df_contacts['ai_score'], errors='coerce').fillna(0).astype('Int64')
-
                 if 'src_scraped_dt' in df_contacts.columns:
                     df_contacts['src_scraped_dt'] = pd.to_datetime(df_contacts['src_scraped_dt']).dt.tz_localize('UTC')
 #
@@ -353,7 +349,8 @@ class BigQueryService:
                         current_job_duration = source.current_job_duration,
                         cntry_value = source.cntry_value,
                         cntry_city_value = source.cntry_city_value,
-                        src_scraped_dt = source.src_scraped_dt
+                        src_scraped_dt = source.src_scraped_dt,
+                        ai_explanation = source.ai_explanation
                 WHEN NOT MATCHED THEN
                     INSERT (
                         biz_identifier,
@@ -375,7 +372,8 @@ class BigQueryService:
                         current_job_duration,
                         cntry_value,
                         cntry_city_value,
-                        src_scraped_dt
+                        src_scraped_dt,
+                        ai_explanation
                     )
                     VALUES (
                         source.biz_identifier,
@@ -397,7 +395,8 @@ class BigQueryService:
                         source.current_job_duration,
                         source.cntry_value,
                         source.cntry_city_value,
-                        source.src_scraped_dt
+                        source.src_scraped_dt,
+                        source.ai_explanation
                     );
             """            
             # Ejecutar merge
@@ -436,103 +435,6 @@ class BigQueryService:
                 logger.warning(f"⚠️ No se pudo eliminar tabla temporal {temp_destination}: {e}")
                 # Fallback al método original de append
 
-            logger.info("🔄 Fallback a método append...")
-            
-            try:
-                df_chunk.to_gbq(
-                    destination_table=destination_table,
-                    project_id=self.__project_id,
-                    if_exists='append',
-                    table_schema=None,
-                    location=location,
-                    progress_bar=False
-                )
-                return len(df_chunk), 0
-            except Exception as e2:
-                logger.error(f"❌ Error en fallback: {e2}")
-                raise e2
-
-    def _process_companies_chunk_with_upsert(self, df_chunk, table_name, location):
-        """
-        Procesa un chunk de datos implementando lógica de upsert.
-        Retorna (insertados, actualizados)
-        #Location : US
-
-        """
-        destination_table = f'{self.__project_id}.{self.__dataset}.{table_name}'
-        success = False
-        inserted = 0
-        updated = 0
-        
-        try:
-            # Crear tabla temporal para el merge
-            temp_table_name = f"temp_{table_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            temp_destination = f'{self.__project_id}.{self.__dataset}.{temp_table_name}'
-            
-            # Insertar datos en tabla temporal
-            df_chunk.to_gbq(
-                destination_table=temp_destination,
-                project_id=self.__project_id,
-                if_exists='replace',
-                table_schema=None,
-                location=location,
-                progress_bar=False
-            )
-            
-            # Query de MERGE para upsert
-            merge_query = f"""
-                MERGE `{destination_table}` AS target
-                USING `{temp_destination}` AS source
-                ON target.biz_identifier = source.biz_identifier
-                WHEN MATCHED THEN
-                    UPDATE SET
-                        scrapping_d = source.scrapping_d,
-                        contact_found_flg = source.contact_found_flg
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        biz_identifier,
-                        biz_name,
-                        scrapping_d,
-                        contact_found_flg
-                    )
-                    VALUES (
-                        source.biz_identifier,
-                        source.biz_name,
-                        source.scrapping_d,
-                        source.contact_found_flg
-                    );
-            """            
-            # Ejecutar merge
-            query_job = self.__bq_client.query(merge_query)
-            result = query_job.result()
-            # Obtener estadísticas del merge
-            if hasattr(result, 'num_dml_affected_rows'):
-                # Para versiones más recientes de BigQuery
-                updated = result.num_dml_affected_rows
-            else:
-                # Fallback: contar registros en tabla temporal
-                count_query = f"SELECT COUNT(*) as count FROM `{temp_destination}`"
-                count_job = self.__bq_client.query(count_query)
-                count_result = list(count_job.result())
-                total_records = count_result[0].count if count_result else 0
-                
-                # Asumir que la mayoría son actualizaciones si la tabla ya tiene datos
-                updated = total_records // 2  # Estimación conservadora
-                inserted = total_records - updated
-            
-            success = True
-            # Limpiar tabla temporal
-            try:
-                logger.info(f"🔄 Eliminando tabla temporal {temp_destination}")
-                self.__bq_client.delete_table(temp_destination, not_found_ok=True)
-            except Exception as e:
-                logger.warning(f"⚠️ No se pudo eliminar tabla temporal {temp_destination}: {e}")
-            
-            return {"success": success, "inserted": inserted, "updated": updated}
-            
-        except Exception as e:
-            logger.error(f"❌ Error en upsert: {e}")
-            # Fallback al método original de append
             logger.info("🔄 Fallback a método append...")
             
             try:
