@@ -187,7 +187,7 @@ class LinkedInContactsSelectiveScraper:
                     profiles_by_biz[biz_id] = []
                 profiles_by_biz[biz_id].append(profile)
 
-        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador','Invalido']
+        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador']
         valid_profiles = []
 
         # 2. Iterar sobre cada empresa y aplicar las reglas de filtrado
@@ -199,6 +199,8 @@ class LinkedInContactsSelectiveScraper:
             has_td_or_referenciador = False
             
             for profile in biz_profiles:
+
+
                 score = profile.get('score')
 
                 if score in ['Tomador de Decisión', 'Referenciador']:
@@ -208,7 +210,7 @@ class LinkedInContactsSelectiveScraper:
                 if has_td_or_referenciador and score == 'No Referenciador':
                     continue
 
-                if score == 'Invalido':
+                if score not in priority_order:
                     continue
 
                 # Limitar a 3 perfiles por empresa
@@ -283,6 +285,12 @@ class LinkedInContactsSelectiveScraper:
             logger.error(f"❌ Error en scraping: {e}")
             return {'success': False, 'error': str(e)}
 
+    def clean_categoria(categoria: str) -> str:
+        """
+        Limpia la categoría
+        """
+
+        return categoria.strip()
     
     def clean_scraped_data(self, scraped_data: List[Dict]) -> Dict:
         """
