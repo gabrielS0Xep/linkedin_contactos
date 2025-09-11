@@ -175,51 +175,47 @@ class LinkedInContactsSelectiveScraper:
         """
         profiles_by_biz = {}
         
-        # 1. Agrupar perfiles por empresa
+        # Define el orden de prioridad y el valor por defecto para el ordenamiento
+        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador']
+        default_priority = len(priority_order) # Usamos un índice que está fuera de la lista
+
+        # 1. Agrupar perfiles por empresa y filtrar los que no tienen un score válido
         for profile in profiles:
             biz_id = profile.get('biz_identifier')
-            if biz_id:
+            score = profile.get('score')
+            
+            # Ignora perfiles sin biz_id o con un score que no está en la lista de prioridades
+            if biz_id and score in priority_order:
                 if biz_id not in profiles_by_biz:
                     profiles_by_biz[biz_id] = []
                 profiles_by_biz[biz_id].append(profile)
 
-        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador']
         valid_profiles = []
 
         # 2. Iterar sobre cada empresa y aplicar las reglas de filtrado
         for biz_id, biz_profiles in profiles_by_biz.items():
-            try:
-                # Ordenar los perfiles de la empresa por prioridad
-                biz_profiles.sort(key=lambda p: priority_order.index(p.get('score', 'Invalido')))
+            # Ordenar los perfiles de la empresa por prioridad
+            biz_profiles.sort(key=lambda p: priority_order.index(p['score']))
+            
+            selected_for_biz = []
+            has_td_or_referenciador = False
+            
+            for profile in biz_profiles:
+                score = profile['score']
                 
-                selected_for_biz = []
-                has_td_or_referenciador = False
+                # Detecta si ya hay un Tomador de Decisión o un Referenciador
+                if score in ['Tomador de Decisión', 'Referenciador']:
+                    has_td_or_referenciador = True
                 
-                for profile in biz_profiles:
-                    try:
-                        score = profile.get('score')
-                        if score in ['Tomador de Decisión', 'Referenciador']:
-                            has_td_or_referenciador = True
-                    
-                        # Aplicar la lógica de "no considerar No Referenciador si ya hay TD o Referenciador"
-                        if has_td_or_referenciador and score == 'No Referenciador':
-                            continue
-
-                        if score not in priority_order:
-                            continue
-
-                        # Limitar a 3 perfiles por empresa
-                        if len(selected_for_biz) < 3:
-                            selected_for_biz.append(profile)
-                        
-                    except Exception as e:
-                        logger.error(f"❌ Error en filter_profiles_by_score: {e}")
-                        continue 
+                # Si hay un perfil de alta prioridad, ignora los No Referenciadores
+                if has_td_or_referenciador and score == 'No Referenciador':
+                    continue
                 
-                valid_profiles.extend(selected_for_biz)
-            except Exception as e:
-                logger.error(f"❌ Error en filter_profiles_by_score: {e}")
-                continue
+                # Limita a 3 perfiles por empresa
+                if len(selected_for_biz) < 3:
+                    selected_for_biz.append(profile)
+            
+            valid_profiles.extend(selected_for_biz)
         
         return valid_profiles
 
