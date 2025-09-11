@@ -183,39 +183,43 @@ class LinkedInContactsSelectiveScraper:
                     profiles_by_biz[biz_id] = []
                 profiles_by_biz[biz_id].append(profile)
 
-        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador','Invalido']
+        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador']
         valid_profiles = []
 
         # 2. Iterar sobre cada empresa y aplicar las reglas de filtrado
         for biz_id, biz_profiles in profiles_by_biz.items():
-            # Ordenar los perfiles de la empresa por prioridad
-            biz_profiles.sort(key=lambda p: priority_order.index(p.get('score', 'No Referenciador')))
-            
-            selected_for_biz = []
-            has_td_or_referenciador = False
-            
-            for profile in biz_profiles:
-                try:
-                    score = profile.get('score')
-                    if score in ['Tomador de Decisión', 'Referenciador']:
-                        has_td_or_referenciador = True
+            try:
+                # Ordenar los perfiles de la empresa por prioridad
+                biz_profiles.sort(key=lambda p: priority_order.index(p.get('score', 'Invalido')))
                 
-                    # Aplicar la lógica de "no considerar No Referenciador si ya hay TD o Referenciador"
-                    if has_td_or_referenciador and score == 'No Referenciador':
-                        continue
-
-                    if score not in priority_order or score == 'Invalido':
-                        continue
-
-                    # Limitar a 3 perfiles por empresa
-                    if len(selected_for_biz) < 3:
-                        selected_for_biz.append(profile)
+                selected_for_biz = []
+                has_td_or_referenciador = False
+                
+                for profile in biz_profiles:
+                    try:
+                        score = profile.get('score')
+                        if score in ['Tomador de Decisión', 'Referenciador']:
+                            has_td_or_referenciador = True
                     
-                except Exception as e:
-                    logger.error(f"❌ Error en score: {e}")
-                    continue 
-            
-            valid_profiles.extend(selected_for_biz)
+                        # Aplicar la lógica de "no considerar No Referenciador si ya hay TD o Referenciador"
+                        if has_td_or_referenciador and score == 'No Referenciador':
+                            continue
+
+                        if score not in priority_order:
+                            continue
+
+                        # Limitar a 3 perfiles por empresa
+                        if len(selected_for_biz) < 3:
+                            selected_for_biz.append(profile)
+                        
+                    except Exception as e:
+                        logger.error(f"❌ Error en filter_profiles_by_score: {e}")
+                        continue 
+                
+                valid_profiles.extend(selected_for_biz)
+            except Exception as e:
+                logger.error(f"❌ Error en filter_profiles_by_score: {e}")
+                continue
         
         return valid_profiles
 
