@@ -54,7 +54,7 @@ def get_services():
         logger.error(f"❌ Error inicializando servicios: {e}")
         raise
 
-    return bigquery_service , secret_manager
+    return bigquery_service
 
 
 @app.route("/status", methods=['GET'])
