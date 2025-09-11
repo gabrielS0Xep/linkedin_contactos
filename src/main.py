@@ -49,7 +49,6 @@ def get_services():
             table_control_name = Config.CONTROL_TABLE_NAME,
             table_info_name = Config.LINKEDIN_INFO_TABLE_NAME
         )
-        secret_manager = SecretManager(project=Config.GOOGLE_CLOUD_PROJECT_ID)
         logger.info("✅ Servicios inicializados correctamente")
     except Exception as e:
         logger.error(f"❌ Error inicializando servicios: {e}")
@@ -118,6 +117,7 @@ def scrape():
     # 🆕 API KEY DE APIFY
     APIFY_TOKEN = Config.APIFY_TOKEN
     
+    bigquery_service = get_services()
     # PASO 0: Crear tablas si no existen
     if not bigquery_service.table_exists(Config.CONTROL_TABLE_NAME):
         bigquery_service.crear_tabla_empresas_scrapeadas_linkedin_contacts()
