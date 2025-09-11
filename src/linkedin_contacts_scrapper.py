@@ -199,23 +199,25 @@ class LinkedInContactsSelectiveScraper:
             has_td_or_referenciador = False
             
             for profile in biz_profiles:
-
-
-                score = profile.get('score')
-
-                if score in ['Tomador de Decisión', 'Referenciador']:
-                    has_td_or_referenciador = True
+                try:
+                    score = profile.get('score')
+                    if score in ['Tomador de Decisión', 'Referenciador']:
+                        has_td_or_referenciador = True
                 
-                # Aplicar la lógica de "no considerar No Referenciador si ya hay TD o Referenciador"
-                if has_td_or_referenciador and score == 'No Referenciador':
-                    continue
+                    # Aplicar la lógica de "no considerar No Referenciador si ya hay TD o Referenciador"
+                    if has_td_or_referenciador and score == 'No Referenciador':
+                        continue
 
-                if score not in priority_order:
-                    continue
+                    if score not in priority_order:
+                        continue
 
-                # Limitar a 3 perfiles por empresa
-                if len(selected_for_biz) < 3:
-                    selected_for_biz.append(profile)
+                    # Limitar a 3 perfiles por empresa
+                    if len(selected_for_biz) < 3:
+                        selected_for_biz.append(profile)
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error en score: {e}")
+                    continue 
             
             valid_profiles.extend(selected_for_biz)
         
