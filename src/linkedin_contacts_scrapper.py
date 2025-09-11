@@ -435,7 +435,17 @@ class LinkedInContactsSelectiveScraper:
             logger.error("❌ Ningún perfil alcanzó el score mínimo")
             return []
 
-        # 3. Scrapear SOLO los perfiles seleccionados
+        logger.info(f"🔍 Selected profiles: {selected_profiles}")
+        # 3. Filtra los perfiles por score
+        selected_profiles = self.filter_profiles_by_score(selected_profiles)
+
+        logger.info(f"🔍 Filtered profiles: {selected_profiles}")
+        
+        if selected_profiles == []:
+            logger.error("❌ Ningún perfil alcanzó el score mínimo")
+            return []
+
+        # 4. Scrapear SOLO los perfiles seleccionados
         scraping_results = self.scrape_selected_profiles(selected_profiles)
 
         if not scraping_results['success']:
@@ -444,12 +454,12 @@ class LinkedInContactsSelectiveScraper:
         
         logger.info(f"🔍 Scraping results: {scraping_results['scraped_profiles']}")
 
-        # 4. Limpia los datos scrapeados
+        # 5. Limpia los datos scrapeados
         cleaned_scraped_data = self.clean_scraped_data(scraping_results['scraped_profiles'])
 
         logger.info(f"🔍 Cleaned scraped data: {cleaned_scraped_data}")
 
-        # 4. Combinar datos de evaluación con scraping
+        # 6. Combinar datos de evaluación con scraping
         merged_profiles = self.merge_evaluation_and_scraping(
             selected_profiles,
             cleaned_scraped_data
