@@ -3,25 +3,10 @@ from flask_cors import CORS
 from config import Config
 import logging
 from bigquery_services import BigQueryService
-from google import genai
-from google.genai import types
-
-from typing import List, Dict, Tuple
-from apify_client import ApifyClient
-
-import re
-from urllib.parse import quote
-from datetime import datetime
-import csv
-import pandas as pd
-from google.cloud import bigquery
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pandas_gbq import to_gbq
-from config import Config
-from bigquery_services import BigQueryService
-
 from linkedin_contacts_scrapper import LinkedInContactsSelectiveScraper
-from secret_manager_service import SecretManager
+from datetime import datetime
+from typing import List, Dict
+import requests
 
 
 
@@ -128,11 +113,18 @@ def scrape():
     data = request.get_json()
     
     batch_size = int(str(data.get('batch_size', 1)))
-    max_per_company = int(str(data.get('max_per_company', 4)))
-
-
+    
     # Cargar empresas no scrapeadas
-    companies_data = bigquery_service.load_companies_from_bigquery_linkedin_contacts(batch_size)
+    #companies_data = bigquery_service.load_companies_from_bigquery_linkedin_contacts(batch_size)
+
+    companies_data = {
+            "companies" : [
+                {
+                    "biz_name" : "SERVICIOS INDUSTRIALES Y GESTION AMBIEN   TAL SC",
+                    "biz_identifier" : "SIG090929CQ3"
+                }
+            ]
+        }
 
     if not companies_data:
         logger.error("❌ No se pudieron cargar empresas desde BigQuery o todas ya fueron scrapeadas. ")
@@ -141,28 +133,28 @@ def scrape():
             ), 400
 
     # Extraer nombres y crear mapeo de biz_identifier
-    companies = [company['biz_name'] for company in companies_data]
-    company_biz_mapping = {company['biz_name']: company['biz_identifier'] for company in companies_data}
+    #companies = [company['biz_name'] for company in companies_data]
+   # company_biz_mapping = {company['biz_name']: company['biz_identifier'] for company in companies_data}
 
-    scraper = LinkedInContactsSelectiveScraper(SERPER_API_KEY, APIFY_TOKEN, company_biz_mapping)
+    scraper = LinkedInContactsSelectiveScraper(SERPER_API_KEY, APIFY_TOKEN)
 
     try:
+        profiles = request_profiles(companies_data)
         # Ejecutar scraping selectivo
-        results = scraper.run_selective_test(
-            companies=companies,
-            max_per_company=max_per_company,  # Máximo 15 perfiles por empresa
+        results = scraper.scrape_linkedin_profiles(
+            profiles = profiles,
         )
 
         if not results:
             logger.info("❌ No se obtuvieron resultados de acuerdo a los criterios de busqueda")
-            """
+            
             return jsonify({
                 "status": "success",
                 "message": "No se obtuvieron resultados de acuerdo a los criterios de busqueda"}), 200
-            """
     except Exception as error:
 
         logger.error("❌ Error en scraping: {error}")
+
         return jsonify({f"error": f"{error}"}), 400
 
     # Solo mostrar estadísticas finales si el proceso se completó
@@ -175,6 +167,7 @@ def scrape():
     logger.info(f"Companies data: {companies_data}")
     
     logger.info("Marcando empresas como scrapeadas")
+
     bigquery_service.marcar_empresas_contacts_como_scrapeadas(contacts_data, companies_data)
 
     # Guardar contactos en BigQuery
@@ -319,6 +312,27 @@ def validate_request():
             "timestamp": datetime.now().isoformat()
         }), 500
 
+
+def request_profiles(companies: List[Dict]):
+    """
+    Funcion para solicitar perfiles de LinkedIn a Google Search Service
+    """
+    try:
+        url = Config.GOOGLE_SEARCH_SERVICE_URL
+        
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        body = { "companies": companies }
+        
+        response = requests.post(url, headers=headers, data=body)
+
+        logger.info(f"🔍 Response: {response.json()}")
+        return response.json()['profiles']
+    except Exception as e:
+        logger.error(f"❌ Error en solicitud de perfiles: {e}")
+        return []
+    
 
 
 if __name__ == "__main__":

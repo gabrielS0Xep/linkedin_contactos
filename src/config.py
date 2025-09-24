@@ -18,6 +18,9 @@ class Config:
     BIGQUERY_DATASET = os.getenv('BIGQUERY_DATASET', 'raw_in_scrapper')
     CONTROL_TABLE_NAME = os.getenv('CONTROL_TABLE_NAME', 'linkedin_scraped_contacts')
     LINKEDIN_INFO_TABLE_NAME = os.getenv('LINKEDIN_INFO_TABLE_NAME', 'linkedin_contacts_info')
+
+    # Google Search Service URL
+    GOOGLE_SEARCH_SERVICE_URL = os.getenv('GOOGLE_SEARCH_SERVICE_URL', 'https://google-search-contacts-601063044530.us-central1.run.app/search')
     
     # Configuración Google Cloud Storage
     #GCS_BUCKET = os.getenv('GCS_BUCKET', 'scrapper_contacts_data')  # Bucket para guardar CSVs

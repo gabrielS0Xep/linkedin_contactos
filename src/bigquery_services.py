@@ -215,7 +215,7 @@ class BigQueryService:
             result_clean_duplicates = self.clean_duplicates_from_control_table(Config.CONTROL_TABLE_NAME)
             logger.info(f"✅ Limpieza de duplicados en la tabla de control: {result_clean_duplicates}")
 
-            return len(df_datos_insertar), 0
+            return result_clean_duplicates
         else:
             logger.warning("⚠️ No hay datos para marcar como scrapeadas")
             return None

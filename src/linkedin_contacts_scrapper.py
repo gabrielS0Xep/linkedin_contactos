@@ -14,11 +14,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 class LinkedInContactsSelectiveScraper:
-    def __init__(self, serper_api_key: str, apify_token: str , company_biz_mapping: Dict):
+    def __init__(self, serper_api_key: str, apify_token: str):
         self.serper_api_key = serper_api_key
     
         self.apify_client = ApifyClient(apify_token)
-        self.company_biz_mapping = company_biz_mapping  # Mapeo de nombres a biz_identifier
 
         # Configuración de proyecto y dataset específicos
         self.project_id = Config.GOOGLE_CLOUD_PROJECT_ID
@@ -42,186 +41,11 @@ class LinkedInContactsSelectiveScraper:
         # Resultados finales para guardar en BigQuery
         self.contacts_results = []
 
-    def set_company_biz_mapping(self, company_biz_mapping: Dict):
-        self.company_biz_mapping = company_biz_mapping
-
-    def search_company_profiles(self, company_name: str, max_profiles: int = 20) -> List[Dict]:
-        """
-        Busca máximo 20 perfiles de LinkedIn por empresa usando Google Dorks
-        """
-        print(f"\n🔍 Buscando perfiles para: {company_name} (máx. {max_profiles})")
-
-        linkedin_profiles = []
-
-        # Queries más específicas para México (adaptado del original)
-        search_queries = [
-            f'site:linkedin.com/in/ "{company_name}" México (CFO OR CEO OR Controller OR "Finance Director")',
-            f'site:linkedin.com/in/ "{company_name}" México (finanzas OR contabilidad OR tesorería)',
-            f'site:linkedin.com/in/ "{company_name}" México ("Financial Manager" OR "Accounting Manager")',
-            f'site:linkedin.com/in/ "{company_name}" "Ciudad de México" (Finance OR Treasury OR Credit)',
-            f'site:mx.linkedin.com/in/ "{company_name}"',
-
-        ]
-        for query in search_queries:
-            if len(linkedin_profiles) >= max_profiles:
-                break
-
-            try:
-                url = "https://google.serper.dev/search"
-                payload = json.dumps({
-                    "q": query,
-                    "num": 8,  # Menos resultados por query
-                    "gl": "mx",
-                    "hl": "es"
-                })
-                headers = {
-                    'X-API-KEY': self.serper_api_key,
-                    'Content-Type': 'application/json'
-                }
-
-                response = requests.post(url, headers=headers, data=payload)
-
-                if response.status_code == 200:
-                    results = response.json()
-
-                    if 'organic' in results:
-                        for result in results['organic']:
-                            link = result.get('link', '')
-                            title = result.get('title', '')
-                            snippet = result.get('snippet', '')
-
-                            if 'linkedin.com/in/' in link and len(linkedin_profiles) < max_profiles:
-                                # Verificar duplicados
-                                logger.info(f"🔍 Perfil encontrado: {link}")
-                                existing_urls = [p['url'] for p in linkedin_profiles]
-                                if link not in existing_urls:
-                                    linkedin_profiles.append({
-                                        'url': link,
-                                        'title': title,
-                                        'snippet': snippet,
-                                        'biz_name': company_name,
-                                        'biz_identifier': self.company_biz_mapping.get(company_name, ''),
-                                        'query_used': query
-                                    })
-                                    logger.info(f"  ✓ Perfil {len(linkedin_profiles)}: {title[:50]}...")
-
-                time.sleep(1)  # Rate limiting
-
-            except Exception as e:
-                logger.error(f"  ❌ Error en búsqueda: {str(e)}")
-                continue
-
-        return linkedin_profiles
-
-###Esta funcion es la que encuentra con serper api los links de los perfiles de linkedin
-
-    
-
-    def select_best_profiles(self, all_profiles: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
-        """
-        Evalúa todos los perfiles y selecciona solo los mejores
-        """
-        evaluated_profiles = []
-        high_score_profiles = []
-        genia_service = GenIaService(self.project_id, self.location)
-        logger.info(f"Se inicializo el genia service")
-        for profile_data in all_profiles:
-            try:
-                logger.info(f"🔍 Evaluando perfil: {profile_data['url']}")
-                result = genia_service.evaluate_profile_relevance_detailed(
-                    profile_data
-                )
-                
-                structured_info = genia_service.extract_structured_info(result)
-        
-                evaluation = {
-                    **profile_data,
-                    **structured_info,
-                    'evaluation_timestamp': datetime.now().isoformat()
-                }
-
-                logger.info(f"🔍 Evaluacion: {evaluation}")
-                evaluated_profiles.append(evaluation)
-
-                high_score_profiles.append(evaluation)
-
-                time.sleep(0.3)  
-
-            except Exception as e:
-                logger.info(f"    ❌ Error evaluando perfil: {str(e)}")
-                continue
-
-        self.test_metrics['profiles_evaluated'] = len(evaluated_profiles)
-        
-        logger.info(f"\n📊 RESULTADOS DE EVALUACIÓN:")
-        logger.info(f"  Perfiles evaluados: {len(evaluated_profiles)}")
-
-        return high_score_profiles
-
-    def filter_profiles_by_score(self, profiles: List[Dict]) -> List[Dict]:
-        """
-        Filtra los perfiles por score, aplicando la lógica de prioridad y el límite por empresa.
-
-        Prioridad:
-        1. Tomador de Decisión (TD)
-        2. Referenciador
-        3. No Referenciador
-
-        Reglas adicionales:
-        - Máximo 3 contactos por empresa.
-        - Si ya hay un TD o un Referenciador, los No Referenciadores no se consideran.
-        """
-        profiles_by_biz = {}
-        
-        # Define el orden de prioridad y el valor por defecto para el ordenamiento
-        priority_order = ['Tomador de Decisión', 'Referenciador', 'No Referenciador']
-        default_priority = len(priority_order) # Usamos un índice que está fuera de la lista
-
-        # 1. Agrupar perfiles por empresa y filtrar los que no tienen un score válido
-        for profile in profiles:
-            biz_id = profile.get('biz_identifier')
-            score = profile.get('score')
-            
-            # Ignora perfiles sin biz_id o con un score que no está en la lista de prioridades
-            if biz_id and score in priority_order:
-                if biz_id not in profiles_by_biz:
-                    profiles_by_biz[biz_id] = []
-                profiles_by_biz[biz_id].append(profile)
-
-        valid_profiles = []
-
-        # 2. Iterar sobre cada empresa y aplicar las reglas de filtrado
-        for biz_id, biz_profiles in profiles_by_biz.items():
-            # Ordenar los perfiles de la empresa por prioridad
-            biz_profiles.sort(key=lambda p: priority_order.index(p['score']))
-            
-            selected_for_biz = []
-            has_td_or_referenciador = False
-            
-            for profile in biz_profiles:
-                score = profile['score']
-                
-                # Detecta si ya hay un Tomador de Decisión o un Referenciador
-                if score in ['Tomador de Decisión', 'Referenciador']:
-                    has_td_or_referenciador = True
-                
-                # Si hay un perfil de alta prioridad, ignora los No Referenciadores
-                if has_td_or_referenciador and score == 'No Referenciador':
-                    continue
-                
-                # Limita a 3 perfiles por empresa
-                if len(selected_for_biz) < 3:
-                    selected_for_biz.append(profile)
-            
-            valid_profiles.extend(selected_for_biz)
-
-        self.test_metrics['high_score_profiles'] = len(valid_profiles)
-        return valid_profiles
-
     def scrape_selected_profiles(self, selected_profiles: List[Dict]) -> Dict:
         """
         Scrapea solo los perfiles seleccionados con dev_fusion
         """
+
         if not selected_profiles:
             logger.error("❌ No hay perfiles seleccionados para scrapear")
             raise Exception("No hay perfiles seleccionados para scrapear")
@@ -229,7 +53,7 @@ class LinkedInContactsSelectiveScraper:
         logger.info(f"\n🚀 Scrapeando {len(selected_profiles)} perfiles seleccionados...")
 
         # Extraer URLs
-        profile_urls = [profile['url'] for profile in selected_profiles]
+        profile_urls = [profile['web_linkedin_url'] for profile in selected_profiles]
 
         # Calcular costo estimado
         estimated_cost = (len(profile_urls) / 1000) * 10
@@ -247,6 +71,7 @@ class LinkedInContactsSelectiveScraper:
             run = self.apify_client.actor("dev_fusion/linkedin-profile-scraper").call(run_input=run_input)
 
             scraping_time = time.time() - start_time
+            
             logger.info(f"⏱️ Tiempo de scraping: {scraping_time:.1f} segundos")
 
             # Obtener resultados
@@ -255,40 +80,20 @@ class LinkedInContactsSelectiveScraper:
                 logger.info(f"🔍 Scraping: {item}")
                 scraped_profiles.append(item)
 
-            self.test_metrics['profiles_scraped'] = len(scraped_profiles)
-
-            # Analizar resultados
-            profiles_with_emails = 0
-            for profile in scraped_profiles:
-                if profile.get('email') or profile.get('emails'):
-                    profiles_with_emails += 1
-
-            self.test_metrics['profiles_with_emails'] = profiles_with_emails
-
             logger.info(f"✅ Scraping completado:")
             logger.info(f"  Perfiles scrapeados: {len(scraped_profiles)}")
-            logger.info(f"  Perfiles con email: {profiles_with_emails}")
-            logger.info(f"  Tasa de emails: {profiles_with_emails/len(scraped_profiles)*100:.1f}%")
 
             return {
                 'success': True,
                 'scraped_profiles': scraped_profiles,
                 'scraping_time': scraping_time,
-                'profiles_with_emails': profiles_with_emails,
                 'run_info': run
             }
 
         except Exception as e:
             logger.error(f"❌ Error en scraping: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': e , 'scraped_profiles': []}
 
-    def clean_categoria(categoria: str) -> str:
-        """
-        Limpia la categoría
-        """
-
-        return categoria.strip()
-    
     def clean_scraped_data(self, scraped_data: List[Dict]) -> Dict:
         """
         Limpia los datos scrapeados
@@ -315,7 +120,6 @@ class LinkedInContactsSelectiveScraper:
             clean_data['topSkillsByEndorsements'] = str(scraped.get('topSkillsByEndorsements', '')).strip()
             clean_data['addressCountryOnly'] = str(scraped.get('addressCountryOnly', '')).strip()
             clean_data['addressWithCountry'] = str(scraped.get('addressWithCountry', '')).strip()
-            clean_data['explicacion'] = str(scraped.get('explicacion', '')).strip()
             clean_data_list.append(clean_data)
             clean_data = {}
 
@@ -366,8 +170,6 @@ class LinkedInContactsSelectiveScraper:
                     merged_profile = {
                         **scraped_fields,   # datos del scraper (nombre, empresa, etc.)
                         **evaluation,       # mantiene 'explicacion' y demás campos de IA
-                        'ai_explanation': evaluation['explicacion'] or evaluation['ia_explanation'],
-                        'scraping_success': scraped_data_match is not None
                     }
 
                     merged_profiles.append(merged_profile)
@@ -406,7 +208,6 @@ class LinkedInContactsSelectiveScraper:
                 'biz_size': profile['companySize'],
                 'full_name': profile['fullName'],
                 'role': profile['jobTitle'],
-                'ai_score_value': profile['score'],
                 'web_linkedin_url': profile['linkedinUrl'],
                 'first_name': profile['firstName'],
                 'last_name': profile['lastName'],
@@ -417,7 +218,10 @@ class LinkedInContactsSelectiveScraper:
                 'cntry_value': profile['addressCountryOnly'],
                 'cntry_city_value': profile['addressWithCountry'],
                 'src_scraped_dt': datetime.now(),
-                'ai_explanation': profile['explicacion']  or profile['ia_explanation']
+                'ai_score_cat': profile['ai_score_cat'],
+                'ai_explanation': profile['ia_explanation'],
+                'ai_current_biz_flg': profile['ai_current_biz_flg'],
+                'ai_role_finance_flg': profile['ai_role_finance_flg']
             }
 
             contacts_data.append(contact_record)
@@ -429,52 +233,15 @@ class LinkedInContactsSelectiveScraper:
         return contacts_data
 
 
-    def run_selective_test(self, companies: List[str], max_per_company: int = 20, ):
+    def scrape_linkedin_profiles(self, profiles: List[Dict] ):
         """
         Ejecuta el test selectivo completo
         """
-  
-        logger.info(f"  Empresas: {len(companies)}")
-        logger.info(f"  Máx. perfiles por empresa: {max_per_company}")
 
-        self.test_metrics['start_time'] = datetime.now()
-        self.test_metrics['companies_processed'] = companies
-
-        # 1. Buscar perfiles por empresa (máx. limite selecionado por empresa)
-        all_profiles = []
-        for company in companies:
-            logger.info(f"🔍 Empresa: {company}")
-            company_profiles = self.search_company_profiles(company, max_per_company)
-            all_profiles.extend(company_profiles)
-            time.sleep(1)  # Pausa entre empresas
-
-        self.test_metrics['total_profiles_found'] = len(all_profiles)
-
-        if all_profiles == []:
-            logger.error("❌ No se encontraron perfiles que cumplan con los criterios de busqueda")
-            return []
-
-        # 2. Evaluar TODOS los perfiles y seleccionar los mejores
-        logger.info(f"🔍 Perfiles encontrados: {len(all_profiles)}")
-        logger.info(f"🔍 Perfiles: {all_profiles}")
-
-        selected_profiles = self.select_best_profiles(all_profiles)
-
-        if selected_profiles == []:
-            logger.error("❌ Ningún perfil alcanzó el score mínimo")
-            return []
+        selected_profiles = profiles
 
         logger.info(f"🔍 Selected profiles: {selected_profiles}")
-        # 3. Filtra los perfiles por score
-        selected_profiles = self.filter_profiles_by_score(selected_profiles)
 
-        logger.info(f"🔍 Filtered profiles: {selected_profiles}")
-        
-        if selected_profiles == []:
-            logger.error("❌ Ningún perfil alcanzó el score mínimo")
-            return []
-
-        # 4. Scrapear SOLO los perfiles seleccionados
         scraping_results = self.scrape_selected_profiles(selected_profiles)
 
         if not scraping_results['success']:
@@ -483,12 +250,13 @@ class LinkedInContactsSelectiveScraper:
         
         logger.info(f"🔍 Scraping results: {scraping_results['scraped_profiles']}")
 
-        # 5. Limpia los datos scrapeados
+        # . Limpia los datos scrapeados
         cleaned_scraped_data = self.clean_scraped_data(scraping_results['scraped_profiles'])
 
         logger.info(f"🔍 Cleaned scraped data: {cleaned_scraped_data}")
 
-        # 6. Combinar datos de evaluación con scraping
+        # . Combinar datos de evaluación con scraping
+
         merged_profiles = self.merge_evaluation_and_scraping(
             selected_profiles,
             cleaned_scraped_data
