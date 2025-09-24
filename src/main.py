@@ -118,13 +118,13 @@ def scrape():
     #companies_data = bigquery_service.load_companies_from_bigquery_linkedin_contacts(batch_size)
 
     companies_data = {
-            "companies" : [
-                {
-                    "biz_name" : "SERVICIOS INDUSTRIALES Y GESTION AMBIEN   TAL SC",
-                    "biz_identifier" : "SIG090929CQ3"
-                }
-            ]
-        }
+        "companies" : [
+            {
+                "biz_name" : "SERVICIOS INDUSTRIALES Y GESTION AMBIEN   TAL SC",
+                "biz_identifier" : "SIG090929CQ3"
+            }
+        ]
+    }
 
     if not companies_data:
         logger.error("❌ No se pudieron cargar empresas desde BigQuery o todas ya fueron scrapeadas. ")
@@ -320,6 +320,8 @@ def request_profiles(companies: List[Dict]):
             'Content-Type': 'application/json'
         }
         body = { "companies": companies }
+
+        logger.info(f"url: {url} , headers: {headers} , body: {body}")
         
         response = requests.post(url, headers=headers, data=body)
 
