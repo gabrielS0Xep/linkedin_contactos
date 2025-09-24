@@ -193,8 +193,6 @@ class LinkedInContactsSelectiveScraper:
         contacts_data = []
 
         for profile in merged_profiles:
-            if not profile['scraping_success']:
-                continue
             # Crear registro de contacto
             contact_record = {
                 'biz_identifier': profile['biz_identifier'],
