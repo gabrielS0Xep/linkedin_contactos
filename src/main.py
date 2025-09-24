@@ -319,7 +319,7 @@ def request_profiles(companies: List[Dict]):
         body = { "companies": companies }
         logger.info(f"body: {body}")
 
-        logger.info(f"url: {url} , headers: {headers} , body: {body}")
+        logger.info(f"url:{url},headers:{headers},body:{body}")
         
         response = requests.post(url = url, headers=headers, data=body)
 
