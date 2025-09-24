@@ -154,7 +154,7 @@ class LinkedInContactsSelectiveScraper:
             for evaluation in selected_profiles:
                 try:
                     
-                    original_url = evaluation['url']
+                    original_url = evaluation['web_linkedin_url']
 
                     normalized_url = self.standardize_url(original_url)
 
@@ -206,7 +206,7 @@ class LinkedInContactsSelectiveScraper:
                 'biz_size': profile['companySize'],
                 'full_name': profile['fullName'],
                 'role': profile['jobTitle'],
-                'web_linkedin_url': profile['linkedinUrl'],
+                'web_linkedin_url': profile['linkedinUrl'] or profile['web_linkedin_url'],
                 'first_name': profile['firstName'],
                 'last_name': profile['lastName'],
                 'email': profile['email'],
