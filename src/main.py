@@ -178,12 +178,8 @@ def scrape():
 
     return jsonify(
         {"message": "Proceso completado exitosamente",
-        "empresas procesadas": len(companies),
-        "perfiles evaluados": len(results),
-        "perfiles seleccionados": len(results),
+        "empresas procesadas": len(companies_data),
         "perfiles scrapeados": len(results),
-        "contactos finales obtenidos": len(contacts_data),
-        "costo total estimado": scraper.test_metrics['cost_estimate'],
         "contactos": contacts_data
     }), 200
 

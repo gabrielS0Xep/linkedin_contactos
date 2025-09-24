@@ -8,8 +8,6 @@ from datetime import datetime
 from config import Config
 from urllib.parse import urlparse
 
-from genia_service import GenIaService
-
 import logging
 logger = logging.getLogger(__name__)
 
