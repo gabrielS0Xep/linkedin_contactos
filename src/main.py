@@ -314,16 +314,21 @@ def request_profiles(companies: List[Dict]):
     Funcion para solicitar perfiles de LinkedIn a Google Search Service
     """
     try:
+        logger.info(f"companies: {companies}")
+
         url = Config.GOOGLE_SEARCH_SERVICE_URL
         
+        logger.info(f"url: {url}")
         headers = {
             'Content-Type': 'application/json'
         }
+        logger.info(f"headers: {headers}")
         body = { "companies": companies }
+        logger.info(f"body: {body}")
 
         logger.info(f"url: {url} , headers: {headers} , body: {body}")
         
-        response = requests.post(url, headers=headers, data=body)
+        response = requests.post(url = url, headers=headers, data=body)
 
         logger.info(f"🔍 Response: {response.json()}")
         return response.json()['profiles']
