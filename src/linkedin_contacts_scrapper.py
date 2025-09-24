@@ -215,7 +215,7 @@ class LinkedInContactsSelectiveScraper:
                 'cntry_city_value': profile['addressWithCountry'],
                 'src_scraped_dt': datetime.now(),
                 'ai_score_cat': profile['ai_score_cat'],
-                'ai_explanation': profile['ia_explanation'],
+                'ai_explanation': profile['ai_explanation'],
                 'ai_current_biz_flg': profile['ai_current_biz_flg'],
                 'ai_role_finance_flg': profile['ai_role_finance_flg']
             }
