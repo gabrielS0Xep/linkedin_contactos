@@ -110,7 +110,8 @@ def scrape():
         bigquery_service.crear_tabla_linkedin_contacts_info()
 
 
-    data = request.get_json()
+    # Manejo robusto del body para evitar 400 Bad Request si no viene JSON válido
+    data = request.get_json(silent=True) or {}
     
     batch_size = int(str(data.get('batch_size', 1)))
     
@@ -146,9 +147,9 @@ def scrape():
                 "message": "No se obtuvieron resultados de acuerdo a los criterios de busqueda"}), 200
     except Exception as error:
 
-        logger.error("❌ Error en scraping: {error}")
+        logger.error(f"❌ Error en scraping: {error}")
 
-        return jsonify({f"error": f"{error}"}), 400
+        return jsonify({"error": f"{error}"}), 400
 
     # Solo mostrar estadísticas finales si el proceso se completó
     logger.info("📝 MARCANDO EMPRESAS COMO SCRAPEADAS...")
@@ -213,7 +214,7 @@ def validate_request():
     """
     try:
         # Obtener servicios
-        bigquery_service, _ = get_services()
+        bigquery_service = get_services()
         
         # Verificar si hay datos en el request
         if not request.is_json:
@@ -232,7 +233,7 @@ def validate_request():
                 "timestamp": datetime.now().isoformat()
             })
         
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         
         # Si hay datos pero no tienen la estructura esperada
         if not data or 'companies' not in data:
@@ -311,20 +312,28 @@ def request_profiles(companies: List[Dict]):
 
         url = Config.GOOGLE_SEARCH_SERVICE_URL
         
-        logger.info(f"url: {url}")
         headers = {
             'Content-Type': 'application/json'
         }
-        logger.info(f"headers: {headers}")
         body = { "companies": companies }
-        logger.info(f"body: {body}")
 
-        logger.info(f"url:{url},headers:{headers},body:{body}")
         
-        response = requests.post(url = url, headers=headers, json=body)
+        response = requests.post(url=url, headers=headers, json=body, timeout=Config.REQUEST_TIMEOUT)
 
-        logger.info(f"🔍 Response: {response.json()}")
-        return response.json()['profiles']
+        # Intentar decodificar JSON de la respuesta de forma segura
+        try:
+            response_json = response.json()
+        except Exception:
+            response_json = {"error": response.text}
+
+        logger.info(f"🔍 Response status: {response.status_code}")
+        logger.info(f"🔍 Response: {response_json}")
+
+        if response.status_code != 200:
+            logger.error(f"❌ Error en Google Search Service ({response.status_code}): {response_json}")
+            return []
+        logger.info(f"response_json: {response_json}")
+        return response_json.get('profiles', [])
     except Exception as e:
         logger.error(f"❌ Error en solicitud de perfiles: {e}")
         return []
