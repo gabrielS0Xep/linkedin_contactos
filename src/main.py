@@ -321,7 +321,7 @@ def request_profiles(companies: List[Dict]):
 
         logger.info(f"url:{url},headers:{headers},body:{body}")
         
-        response = requests.post(url = url, headers=headers, data=body)
+        response = requests.post(url = url, headers=headers, json=body)
 
         logger.info(f"🔍 Response: {response.json()}")
         return response.json()['profiles']
